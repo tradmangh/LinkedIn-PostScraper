@@ -129,7 +129,7 @@ if sys.platform == 'darwin':
     app = BUNDLE(
         coll,
         name=f'{exe_name}.app',
-        icon=icon_file,
+        icon=icon_file if Path(icon_file).exists() else None,
         bundle_identifier='com.linkedin.postscraper.full',
         info_plist={
             'CFBundleName': 'LinkedIn Post Scraper (Full)',
