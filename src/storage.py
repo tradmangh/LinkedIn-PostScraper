@@ -5,6 +5,7 @@ import re
 import logging
 from typing import Optional
 from slugify import slugify
+from datetime import datetime
 
 from .parser import Post
 
@@ -93,6 +94,28 @@ def _is_duplicate(output_folder: str, post: Post) -> bool:
                 except Exception:
                     continue
     return False
+
+
+def get_latest_post_date(person_folder: str) -> Optional[str]:
+    """Get the date of the most recent post in a person's folder.
+    
+    Returns:
+        Date string in YYYY-MM-DD format, or None if no posts exist.
+    """
+    if not os.path.isdir(person_folder):
+        return None
+    
+    latest_date = None
+    for root, dirs, files in os.walk(person_folder):
+        for f in files:
+            if f.endswith(".md"):
+                # Extract date from filename (YYYY-MM-DD_...)
+                match = re.match(r"(\d{4}-\d{2}-\d{2})", f)
+                if match:
+                    file_date = match.group(1)
+                    if latest_date is None or file_date > latest_date:
+                        latest_date = file_date
+    return latest_date
 
 
 def save_post(post: Post, output_folder: str, skip_duplicates: bool = True) -> Optional[str]:

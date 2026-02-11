@@ -2,6 +2,7 @@
 
 import re
 import time
+import random
 import logging
 from dataclasses import dataclass, field
 from typing import Optional
@@ -32,12 +33,22 @@ class LinkedInScraper:
 
     SCROLL_PAUSE_TIME = 2.0
     MAX_NO_CHANGE = 3
+    
+    # Human-like delay ranges (in seconds)
+    DELAY_BETWEEN_SCROLLS = (1.5, 3.0)  # Random delay between scrolls
+    DELAY_BETWEEN_CLICKS = (0.8, 1.5)   # Random delay between clicks
+    DELAY_AFTER_LOAD = (2.0, 3.5)       # Random delay after page load
 
     def __init__(self, browser_state_dir: str):
         self.browser_state_dir = browser_state_dir
         self._playwright = None
         self._context: Optional[BrowserContext] = None
         self._page: Optional[Page] = None
+    
+    def _human_delay(self, delay_range: tuple[float, float]):
+        """Sleep for a random duration within the given range to simulate human behavior."""
+        delay = random.uniform(*delay_range)
+        time.sleep(delay)
 
     def _ensure_context(self, headless: bool = False):
         """Create or reuse a persistent browser context."""
@@ -104,7 +115,7 @@ class LinkedInScraper:
         try:
             self._ensure_context(headless=True)
             self._page.goto("https://www.linkedin.com/feed/", wait_until="domcontentloaded", timeout=15000)
-            time.sleep(2)
+            self._human_delay(self.DELAY_AFTER_LOAD)
             logged_in = "feed" in self._page.url and "login" not in self._page.url
             self.close()
             return logged_in
@@ -132,7 +143,7 @@ class LinkedInScraper:
 
         while True:
             self._page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
-            time.sleep(self.SCROLL_PAUSE_TIME)
+            self._human_delay(self.DELAY_BETWEEN_SCROLLS)  # Human-like random delay
             new_height = self._page.evaluate("document.body.scrollHeight")
 
             if new_height == last_height:

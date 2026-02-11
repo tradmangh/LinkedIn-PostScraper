@@ -40,13 +40,23 @@ class App(ctk.CTk):
         )
         title_label.grid(row=0, column=0, sticky="w")
 
+        # About button
+        about_btn = ctk.CTkButton(
+            header,
+            text="ℹ️ About",
+            width=80,
+            height=28,
+            command=self._show_about,
+        )
+        about_btn.grid(row=0, column=1, padx=(0, 8))
+
         version_label = ctk.CTkLabel(
             header,
             text="v1.0",
             font=ctk.CTkFont(size=12),
             text_color="gray",
         )
-        version_label.grid(row=0, column=1, sticky="e")
+        version_label.grid(row=0, column=2, sticky="e")
 
         # Tabview
         self.tabview = ctk.CTkTabview(self)
@@ -75,3 +85,17 @@ class App(ctk.CTk):
     def _on_close(self):
         save_config(self.config_data)
         self.destroy()
+
+    def _show_about(self):
+        """Show About dialog."""
+        from tkinter import messagebox
+        messagebox.showinfo(
+            "About LinkedIn Post Scraper",
+            "LinkedIn Post Scraper v1.0\n\n"
+            "A tool for archiving LinkedIn posts as markdown files.\n\n"
+            "Co-created by:\n"
+            "• Google Antigravity (AI Agent)\n"
+            "• Anthropic Claude Opus 4.6 & Sonnet 4.5\n\n"
+            "Licensed under MIT License\n\n"
+            "https://github.com/tradmangh/LinkedIn-PostScraper"
+        )
