@@ -26,7 +26,7 @@ class TestSavePost:
         assert result is not None  # Should return filepath
         assert isinstance(result, str)  # Should be a string path
         # Check file was created
-        files = list(Path(temp_output_dir).glob("*.md"))
+        files = list(Path(temp_output_dir).rglob("*.md"))
         assert len(files) == 1
     
     def test_save_post_generates_correct_filename(self, temp_output_dir):
@@ -40,7 +40,7 @@ class TestSavePost:
         
         save_post(post, temp_output_dir)
         
-        files = list(Path(temp_output_dir).glob("2024-02-10_*.md"))
+        files = list(Path(temp_output_dir).rglob("2024-02-10_*.md"))
         assert len(files) == 1
         assert "this-is-a-test-post" in files[0].name.lower()
     
@@ -57,7 +57,7 @@ class TestSavePost:
         
         save_post(post, temp_output_dir)
         
-        files = list(Path(temp_output_dir).glob("*.md"))
+        files = list(Path(temp_output_dir).rglob("*.md"))
         content = files[0].read_text(encoding="utf-8")
         
         assert "---" in content
@@ -86,7 +86,7 @@ class TestSavePost:
         assert result2 is None  # Should return None for duplicate
         
         # Should still only have one file
-        files = list(Path(temp_output_dir).glob("*.md"))
+        files = list(Path(temp_output_dir).rglob("*.md"))
         assert len(files) == 1
 
 

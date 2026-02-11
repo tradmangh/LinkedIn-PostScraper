@@ -66,28 +66,26 @@ class TestFullWorkflow:
     
     def test_multiple_profiles_separate_folders(self, temp_output_dir):
         """Test that posts from different profiles go to separate folders."""
-        # Create person-specific subfolders
-        person1_folder = Path(temp_output_dir) / "john-doe"
-        person2_folder = Path(temp_output_dir) / "jane-smith"
-        
-        person1_folder.mkdir(parents=True)
-        person2_folder.mkdir(parents=True)
-        
-        # Save posts for different people
+        # Don't create subfolders manually - save_post does this automatically
         post1 = Post(author="John Doe", date="2024-02-10", content="John's post", post_url="https://linkedin.com/post/1")
         post2 = Post(author="Jane Smith", date="2024-02-11", content="Jane's post", post_url="https://linkedin.com/post/2")
         
-        save_post(post1, str(person1_folder))
-        save_post(post2, str(person2_folder))
+        save_post(post1, temp_output_dir)
+        save_post(post2, temp_output_dir)
         
-        # Verify files are in correct folders
+        # Verify author-specific subfolders were created
+        person1_folder = Path(temp_output_dir) / "john-doe"
+        person2_folder = Path(temp_output_dir) / "jane-smith"
+        
+        assert person1_folder.exists()
+        assert person2_folder.exists()
+        
         person1_files = list(person1_folder.glob("*.md"))
         person2_files = list(person2_folder.glob("*.md"))
         
         assert len(person1_files) == 1
         assert len(person2_files) == 1
         
-        # Verify content
         assert "John's post" in person1_files[0].read_text()
         assert "Jane's post" in person2_files[0].read_text()
 
