@@ -204,10 +204,75 @@ def _on_button_click(self):
     threading.Thread(target=worker, daemon=True).start()
 ```
 
-## Testing Checklist
+## Testing Guidelines
+
+### TDD Principle
+
+**Always write tests BEFORE implementing features.**
+
+1. Write failing test
+2. Implement minimal code to pass
+3. Refactor while keeping tests green
+4. Repeat
+
+### Running Tests
+
+```bash
+# Run all tests
+pytest
+
+# Run with coverage
+pytest --cov=src --cov-report=html
+
+# Run specific test file
+pytest tests/test_parser.py
+
+# Run specific test
+pytest tests/test_parser.py::test_parse_relative_date_hours
+
+# Run in verbose mode
+pytest -v
+```
+
+### Coverage Target
+
+- **Minimum**: 80%+ code coverage for all modules
+- **Check coverage**: Open `htmlcov/index.html` after running with `--cov-report=html`
+
+### Test Structure
+
+```
+tests/
+├── conftest.py              # Shared fixtures
+├── test_parser.py           # Parser unit tests
+├── test_storage.py          # Storage unit tests
+├── test_scraper.py          # Scraper unit tests
+└── test_integration.py      # End-to-end tests
+```
+
+### Writing Tests
+
+```python
+import pytest
+from src.parser import parse_post, Post
+
+def test_parse_post_extracts_author(sample_post_html):
+    """Test that parse_post extracts author name correctly."""
+    post = parse_post(sample_post_html)
+    assert post.author == "John Doe"
+```
+
+### CI/CD
+
+- **GitHub Actions** runs tests automatically on every push
+- **Coverage reports** uploaded to Codecov
+- **Pull requests** require passing tests
+
+## Manual Testing Checklist
 
 Before committing changes:
 
+- [ ] **Automated tests**: `pytest` (all tests pass)
 - [ ] **Import test**: `python -c "from src import scraper, parser, storage, ui"`
 - [ ] **Launch test**: `python main.py` (window opens without errors)
 - [ ] **Login test**: Click Login → authenticate → session saved

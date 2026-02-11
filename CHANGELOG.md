@@ -7,23 +7,51 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
+### Planned for v2.0
 
 - Per-person output subfolders to organize posts by LinkedIn profile
 - Incremental scraping to avoid re-downloading existing posts
 - Year-based collapsible post groups in UI (current year expanded by default)
-- Engagement metrics (reactions, comments) displayed in post list columns
-- Engagement metrics stored in markdown frontmatter
 - Select All / Deselect All button for bulk post selection
 - Open in Explorer button for quick folder access
-- Human-like scraping delays to avoid detection
-- About menu with attribution to Google Antigravity and Anthropic Claude
-- MIT License
+- AI-powered topic tagging (Google Gemini integration)
+
+## [1.2.0] - 2026-02-11
+
+### Added
+
+- **Cross-platform executables** for Windows, macOS, and Linux using PyInstaller
+- **Two build variants**:
+  - **Standalone** (~50-80 MB): Downloads browser on first run
+  - **Full Bundle** (~350-400 MB): Browser included for offline use
+- **Automated builds** via GitHub Actions on release tags
+- **Build scripts** for local compilation on each platform
+- **BUILDING.md** developer guide for creating executables
+- PyInstaller spec files for both build variants
+- Application icon placeholders (Windows .ico, macOS .icns, Linux .png)
 
 ### Changed
 
-- Enhanced README with open source project structure
-- Improved post list UI with additional columns for engagement data
+- Updated requirements.txt to include PyInstaller dependency
+- Enhanced documentation with download and installation instructions
+
+## [1.1.0] - 2026-02-11
+
+### Added
+
+- **Automated test suite** with pytest, pytest-mock, and pytest-cov
+- **40+ unit and integration tests** covering parser, storage, and scraper modules
+- **Test fixtures** for LinkedIn HTML samples and mock Playwright pages
+- **pytest configuration** with coverage reporting (80%+ target)
+- **GitHub Actions CI/CD** workflow for automated testing on push
+- **TDD guidelines** in `.agent/INSTRUCTIONS.md` for future development
+- Engagement metrics (reactions, comments) in Post dataclass and markdown frontmatter
+- Human-like scraping delays to avoid detection (1.5-3s between scrolls, 2-3.5s after loads)
+
+### Changed
+
+- Enhanced `.agent/INSTRUCTIONS.md` with comprehensive testing guidelines
+- Updated `requirements.txt` with testing dependencies
 
 ## [1.0.0] - 2026-02-11
 

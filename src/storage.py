@@ -129,14 +129,17 @@ def save_post(post: Post, output_folder: str, skip_duplicates: bool = True) -> O
     Returns:
         Path to the saved file, or None if skipped.
     """
-    os.makedirs(output_folder, exist_ok=True)
+    # Create person-specific subfolder
+    author_slug = slugify(post.author) if post.author else "unknown-author"
+    person_folder = os.path.join(output_folder, author_slug)
+    os.makedirs(person_folder, exist_ok=True)
 
-    if skip_duplicates and _is_duplicate(output_folder, post):
+    if skip_duplicates and _is_duplicate(person_folder, post):
         logger.info(f"Skipping duplicate post: {post.post_url}")
         return None
 
     filename = _build_filename(post)
-    filepath = os.path.join(output_folder, filename)
+    filepath = os.path.join(person_folder, filename)
 
     # Handle filename collision
     counter = 1

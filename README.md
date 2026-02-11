@@ -34,12 +34,39 @@ A Python desktop application that scrapes LinkedIn posts from activity feeds and
 
 ## 🚀 Quick Start
 
-### Prerequisites
+### Option 1: Download Pre-Built Executable (Recommended)
+
+**No Python installation required!** Download the latest release for your platform:
+
+#### 📦 [Download from Releases](https://github.com/tradmangh/LinkedIn-PostScraper/releases)
+
+**Two variants available:**
+
+1. **Standalone** (~50-80 MB) - Recommended
+   - Smaller download
+   - Downloads browser on first run
+   - Requires internet connection initially
+
+2. **Full Bundle** (~350-400 MB)
+   - Larger download
+   - Browser included
+   - Works completely offline
+   - Use if browser download is blocked
+
+**Installation:**
+
+- **Windows**: Extract ZIP → Run `.exe` file
+- **macOS**: Extract ZIP → Right-click app → "Open"
+- **Linux**: Extract tar.gz → `chmod +x` → Run binary
+
+### Option 2: Run from Source
+
+#### Prerequisites
 
 - Python 3.8 or higher
 - Windows (tested), macOS/Linux (should work)
 
-### Installation
+#### Installation
 
 ```bash
 # Clone the repository
@@ -137,6 +164,39 @@ Edit `config.json` to customize:
   "max_posts": 50
 }
 ```
+
+## 🧪 Testing
+
+This project includes a comprehensive automated test suite following TDD principles.
+
+### Running Tests
+
+```bash
+# Install test dependencies (if not already installed)
+pip install pytest pytest-mock pytest-cov
+
+# Run all tests
+pytest
+
+# Run with coverage report
+pytest --cov=src --cov-report=html
+
+# View coverage report
+# Open htmlcov/index.html in your browser
+```
+
+### Test Coverage
+
+- **40+ unit and integration tests**
+- **80%+ code coverage** across all modules
+- **Automated CI/CD** via GitHub Actions on every push
+
+### Test Structure
+
+- `tests/test_parser.py` - Date parsing, content extraction, engagement metrics
+- `tests/test_storage.py` - File I/O, deduplication, frontmatter generation
+- `tests/test_scraper.py` - URL building, human delays, scroll logic
+- `tests/test_integration.py` - End-to-end workflows
 
 ## 🤝 Contributing
 

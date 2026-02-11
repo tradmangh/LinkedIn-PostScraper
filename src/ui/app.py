@@ -40,7 +40,6 @@ class App(ctk.CTk):
         )
         title_label.grid(row=0, column=0, sticky="w")
 
-        # About button
         about_btn = ctk.CTkButton(
             header,
             text="ℹ️ About",
@@ -48,15 +47,7 @@ class App(ctk.CTk):
             height=28,
             command=self._show_about,
         )
-        about_btn.grid(row=0, column=1, padx=(0, 8))
-
-        version_label = ctk.CTkLabel(
-            header,
-            text="v1.0",
-            font=ctk.CTkFont(size=12),
-            text_color="gray",
-        )
-        version_label.grid(row=0, column=2, sticky="e")
+        about_btn.grid(row=0, column=1, sticky="e")
 
         # Tabview
         self.tabview = ctk.CTkTabview(self)
@@ -91,7 +82,7 @@ class App(ctk.CTk):
         from tkinter import messagebox
         messagebox.showinfo(
             "About LinkedIn Post Scraper",
-            "LinkedIn Post Scraper v1.0\n\n"
+            "LinkedIn Post Scraper v1.2\n\n"
             "A tool for archiving LinkedIn posts as markdown files.\n\n"
             "Co-created by:\n"
             "• Google Antigravity (AI Agent)\n"

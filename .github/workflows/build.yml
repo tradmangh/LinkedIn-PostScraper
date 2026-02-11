@@ -1,0 +1,168 @@
+name: Build Executables
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'  # Trigger on version tags like v1.2.0
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  build:
+    name: Build on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            artifact_name_standalone: LinkedIn-PostScraper-Standalone-Windows
+            artifact_name_full: LinkedIn-PostScraper-Full-Windows
+            build_script: scripts\build_windows.bat
+          - os: macos-latest
+            artifact_name_standalone: LinkedIn-PostScraper-Standalone-macOS
+            artifact_name_full: LinkedIn-PostScraper-Full-macOS
+            build_script: scripts/build_macos.sh
+          - os: ubuntu-latest
+            artifact_name_standalone: LinkedIn-PostScraper-Standalone-Linux
+            artifact_name_full: LinkedIn-PostScraper-Full-Linux
+            build_script: scripts/build_linux.sh
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Install Playwright browsers
+        run: python -m playwright install chromium
+
+      - name: Make build script executable (Unix)
+        if: runner.os != 'Windows'
+        run: chmod +x ${{ matrix.build_script }}
+
+      - name: Build executables
+        run: ${{ matrix.build_script }}
+
+      - name: Create standalone archive (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          Compress-Archive -Path "dist\LinkedIn-PostScraper-Standalone\*" -DestinationPath "${{ matrix.artifact_name_standalone }}.zip"
+        shell: pwsh
+
+      - name: Create full archive (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          Compress-Archive -Path "dist\LinkedIn-PostScraper-Full\*" -DestinationPath "${{ matrix.artifact_name_full }}.zip"
+        shell: pwsh
+
+      - name: Create standalone archive (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          cd dist
+          zip -r "../${{ matrix.artifact_name_standalone }}.zip" LinkedIn-PostScraper-Standalone.app
+
+      - name: Create full archive (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          cd dist
+          zip -r "../${{ matrix.artifact_name_full }}.zip" LinkedIn-PostScraper-Full.app
+
+      - name: Create standalone archive (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          cd dist
+          tar -czf "../${{ matrix.artifact_name_standalone }}.tar.gz" linkedin-postscraper-standalone
+
+      - name: Create full archive (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          cd dist
+          tar -czf "../${{ matrix.artifact_name_full }}.tar.gz" linkedin-postscraper-full
+
+      - name: Upload standalone artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name_standalone }}
+          path: |
+            ${{ matrix.artifact_name_standalone }}.zip
+            ${{ matrix.artifact_name_standalone }}.tar.gz
+          if-no-files-found: ignore
+
+      - name: Upload full artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name_full }}
+          path: |
+            ${{ matrix.artifact_name_full }}.zip
+            ${{ matrix.artifact_name_full }}.tar.gz
+          if-no-files-found: ignore
+
+  release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Display structure
+        run: ls -R artifacts
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          draft: true
+          generate_release_notes: true
+          files: |
+            artifacts/**/*.zip
+            artifacts/**/*.tar.gz
+          body: |
+            ## 📦 Download Options
+            
+            ### Standalone Builds (~50-80 MB)
+            Downloads browser on first run. Recommended for most users.
+            - **Windows**: `LinkedIn-PostScraper-Standalone-Windows.zip`
+            - **macOS**: `LinkedIn-PostScraper-Standalone-macOS.zip`
+            - **Linux**: `LinkedIn-PostScraper-Standalone-Linux.tar.gz`
+            
+            ### Full Builds (~350-400 MB)
+            Browser included. Use if download is blocked or for offline use.
+            - **Windows**: `LinkedIn-PostScraper-Full-Windows.zip`
+            - **macOS**: `LinkedIn-PostScraper-Full-macOS.zip`
+            - **Linux**: `LinkedIn-PostScraper-Full-Linux.tar.gz`
+            
+            ## 🚀 Installation
+            
+            **Windows:**
+            1. Download and extract the ZIP file
+            2. Run `LinkedIn-PostScraper-Standalone.exe` or `LinkedIn-PostScraper-Full.exe`
+            3. If Windows Defender blocks it, click "More info" → "Run anyway"
+            
+            **macOS:**
+            1. Download and extract the ZIP file
+            2. Right-click the app → "Open" (to bypass Gatekeeper)
+            3. Or run: `xattr -cr LinkedIn-PostScraper-*.app`
+            
+            **Linux:**
+            1. Download and extract the tar.gz file
+            2. Make executable: `chmod +x linkedin-postscraper-*`
+            3. Run: `./linkedin-postscraper-standalone` or `./linkedin-postscraper-full`
+            
+            ## 📝 What's New
+            See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for details.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
