@@ -50,8 +50,8 @@ A Python desktop application that scrapes LinkedIn posts from activity feeds and
 2. **Full Bundle** (~350-400 MB)
    - Larger download
    - Browser included
-   - Works completely offline
-   - Use if browser download is blocked
+   - No additional downloads needed
+   - Use if browser download is blocked or restricted
 
 **Installation:**
 

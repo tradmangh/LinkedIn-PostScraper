@@ -31,9 +31,19 @@ try:
     import customtkinter
     ctk_path = Path(customtkinter.__file__).parent
     ctk_datas = [(str(ctk_path), 'customtkinter')]
-except ImportError:
+    print(f"✓ Found CustomTkinter at: {ctk_path}")
+except (ImportError, AttributeError) as e:
+    # Fallback: try to find it in site-packages
+    import site
     ctk_datas = []
-    print("Warning: CustomTkinter not found, UI may not work correctly")
+    for site_pkg in site.getsitepackages():
+        ctk_candidate = Path(site_pkg) / 'customtkinter'
+        if ctk_candidate.exists():
+            ctk_datas = [(str(ctk_candidate), 'customtkinter')]
+            print(f"✓ Found CustomTkinter at: {ctk_candidate}")
+            break
+    if not ctk_datas:
+        print("⚠ Warning: CustomTkinter not found, UI may not work correctly")
 
 # Find Chromium browser directory
 chromium_dir = None

@@ -27,11 +27,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Automated builds** via GitHub Actions on release tags
 - **Build scripts** for local compilation on each platform
 - **BUILDING.md** developer guide for creating executables
+- **Person subfolders**: Posts now organized by author in separate subfolders
 - PyInstaller spec files for both build variants
 - Application icon placeholders (Windows .ico, macOS .icns, Linux .png)
 
 ### Changed
 
+- **UI cleanup**: Removed version indicator from header (now only in About dialog)
+- **Version bump**: Updated to v1.2 in About dialog
 - Updated requirements.txt to include PyInstaller dependency
 - Enhanced documentation with download and installation instructions
 
