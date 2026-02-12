@@ -86,8 +86,8 @@ class TestFullWorkflow:
         assert len(person1_files) == 1
         assert len(person2_files) == 1
         
-        assert "John's post" in person1_files[0].read_text()
-        assert "Jane's post" in person2_files[0].read_text()
+        assert "John's post" in person1_files[0].read_text(encoding="utf-8")
+        assert "Jane's post" in person2_files[0].read_text(encoding="utf-8")
 
 
 class TestDataIntegrity:
