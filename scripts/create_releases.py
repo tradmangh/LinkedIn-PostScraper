@@ -10,13 +10,15 @@ This script:
 Usage:
   # Create tags and releases
   python3 scripts/create_releases.py
-  
+
   # Skip tag creation (e.g., tags already exist)
   python3 scripts/create_releases.py --skip-tags
-  
+
+  # Tag-only mode (create tags but skip GitHub releases)
+  python3 scripts/create_releases.py --skip-releases
+
   # Skip pushing tags (e.g., will push manually)
   python3 scripts/create_releases.py --skip-push
-  
   # Specify different repository
   python3 scripts/create_releases.py --owner=myuser --repo=myrepo
 """
