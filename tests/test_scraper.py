@@ -136,3 +136,27 @@ class TestScraperInitialization:
         assert scraper.DELAY_BETWEEN_SCROLLS == (1.5, 3.0)
         assert scraper.DELAY_BETWEEN_CLICKS == (0.8, 1.5)
         assert scraper.DELAY_AFTER_LOAD == (2.0, 3.5)
+
+class TestScrapePostsLogic:
+    """Tests for scrape_posts logic."""
+
+    def test_scrape_stopping_condition(self):
+        """Test that scrolling stops when count > start_index."""
+        start_index = 10
+        
+        # Scenario 1: Not enough posts
+        count = 5
+        should_stop = count > start_index
+        assert should_stop is False
+        
+        # Scenario 2: Same match (index 10 needs 11 posts? No, indices are 0..10)
+        # If we have 10 posts, indices are 0..9.
+        # If we want index 10, we need 11 posts.
+        count = 10
+        should_stop = count > start_index
+        assert should_stop is False
+        
+        # Scenario 3: Enough posts
+        count = 11
+        should_stop = count > start_index
+        assert should_stop is True

@@ -26,6 +26,7 @@ class RawPost:
     html: str
     date_text: str
     element_id: str
+    index: int
 
 
 class LinkedInScraper:
@@ -63,26 +64,37 @@ class LinkedInScraper:
         )
         self._page = self._context.pages[0] if self._context.pages else self._context.new_page()
 
-    def close(self):
+    def close(self, on_status=None):
         """Close browser and cleanup."""
+        if on_status:
+            on_status("Closing browser...")
+        
         if self._context:
             try:
                 self._context.close()
-            except Exception:
-                pass
+            except Exception as e:
+                if on_status:
+                    on_status(f"Warning: Error closing context: {e}")
             self._context = None
             self._page = None
         if self._playwright:
             try:
                 self._playwright.stop()
-            except Exception:
-                pass
+            except Exception as e:
+                if on_status:
+                    on_status(f"Warning: Error stopping playwright: {e}")
             self._playwright = None
+        
+        if on_status:
+            on_status("Browser closed.")
 
-    def open_login(self, on_status=None):
+    def open_login(self, on_status=None) -> Optional[str]:
         """Open LinkedIn login page for user to authenticate manually.
         
-        The browser stays open until the user closes it or we detect login success.
+        After successful login, navigates to the user's profile to extract the profile URL.
+        
+        Returns:
+            The user's profile URL (e.g., https://www.linkedin.com/in/username/) or None if extraction fails.
         """
         if on_status:
             on_status("Opening browser for LinkedIn login...")
@@ -91,24 +103,128 @@ class LinkedInScraper:
         self._page.goto("https://www.linkedin.com/login", wait_until="domcontentloaded")
 
         if on_status:
-            on_status("Please log in to LinkedIn in the browser window.\nClose the browser when done.")
+            on_status("Please log in to LinkedIn in the browser window.")
 
         # Wait for the user to log in — we detect it by checking for the feed page
+        profile_url = None
+        login_successful = False
+        
         try:
             self._page.wait_for_url("**/feed/**", timeout=300_000)  # 5 min timeout
+            login_successful = True
+            
             if on_status:
-                on_status("Login successful! Session saved.")
-        except Exception:
+                on_status("Login detected! Extracting your profile URL...")
+            
+            # Navigate to profile page to get the actual username
+            profile_url = self._extract_profile_url(on_status)
+            
+        except Exception as e:
             # User might have navigated elsewhere after login, check if logged in
-            if "feed" in self._page.url or "mynetwork" in self._page.url:
+            current_url = self._page.url
+            
+            if "feed" in current_url or "mynetwork" in current_url or "in/" in current_url:
+                login_successful = True
+                
                 if on_status:
-                    on_status("Login successful! Session saved.")
+                    on_status("Login detected! Extracting your profile URL...")
+                
+                # Try to extract profile URL
+                try:
+                    profile_url = self._extract_profile_url(on_status)
+                except Exception as extract_error:
+                    if on_status:
+                        on_status(f"Could not extract profile URL: {str(extract_error)}")
             else:
                 if on_status:
-                    on_status("Login status unclear. Try scanning posts to verify.")
+                    on_status(f"Login timeout or navigation error: {str(e)}")
 
-        # Close the context to save state
-        self.close()
+        # Only close the browser after we've attempted to extract the profile URL
+        # or if login clearly failed
+        if login_successful or profile_url:
+            if on_status:
+                if profile_url:
+                    on_status(f"✓ Login complete! Profile: {profile_url}")
+                else:
+                    on_status("Login complete! You can now enter a profile URL manually.")
+        
+        self.close(on_status)
+        return profile_url
+
+    def _extract_profile_url(self, on_status=None) -> Optional[str]:
+        """Navigate to the user's profile page and extract the profile URL.
+        
+        Returns:
+            The user's profile URL or None if extraction fails.
+        """
+        try:
+            if on_status:
+                on_status("Navigating to your profile page...")
+            
+            # Navigate to the generic profile page which will redirect to the user's actual profile
+            # Wait for domcontentloaded (faster than networkidle)
+            self._page.goto("https://www.linkedin.com/in/", wait_until="domcontentloaded", timeout=15000)
+            
+            if on_status:
+                on_status("Extracting profile URL...")
+            
+            # Wait for the URL to stabilize (LinkedIn might do redirects)
+            # Quick check with minimal delays for better UX
+            stable_url = None
+            for attempt in range(3):  # Reduced from 5 to 3 attempts
+                current_url = self._page.url
+                
+                # Check if we have a valid profile URL
+                if "/in/" in current_url:
+                    # Extract the part after /in/
+                    parts = current_url.split("/in/")
+                    if len(parts) > 1:
+                        # Get username (everything before ?, #, or next /)
+                        username_part = parts[1].split("?")[0].split("#")[0].split("/")[0]
+                        
+                        # Check if we have a valid username (not empty)
+                        if len(username_part) > 0:
+                            # Quick stability check (reduced from 1s to 0.3s)
+                            time.sleep(0.3)
+                            next_url = self._page.url
+                            
+                            if current_url == next_url:
+                                # URL is stable
+                                stable_url = current_url
+                                break
+                
+                # Still redirecting, wait a bit (reduced from 1s to 0.5s)
+                if attempt < 2:  # Don't wait on last attempt
+                    time.sleep(0.5)
+            
+            if not stable_url:
+                if on_status:
+                    on_status("Profile page did not load properly. You can enter the URL manually.")
+                return None
+            
+            # Extract the profile URL (remove any query parameters or fragments)
+            if "/in/" in stable_url:
+                # Match the profile URL pattern
+                match = re.match(r"(https://www\.linkedin\.com/in/[^/?#]+)", stable_url)
+                if match:
+                    profile_url = match.group(1) + "/"
+                    
+                    # Verify the URL is valid before returning
+                    if len(profile_url) > len("https://www.linkedin.com/in/"):
+                        print(f"[DEBUG] Extracted profile URL: {profile_url}")  # Debug
+                        if on_status:
+                            on_status(f"✓ Profile URL extracted: {profile_url}")
+                        return profile_url
+            
+            print(f"[DEBUG] Could not extract valid profile URL from: {stable_url}")  # Debug
+            if on_status:
+                on_status("Could not extract a valid profile URL. You can enter it manually.")
+            return None
+            
+        except Exception as e:
+            if on_status:
+                on_status(f"Error extracting profile URL: {str(e)}")
+            return None
 
     def is_logged_in(self) -> bool:
         """Check if we have a saved session by attempting to load LinkedIn."""
@@ -123,25 +239,93 @@ class LinkedInScraper:
             self.close()
             return False
 
+    def check_profile_exists(self, profile_url: str) -> bool:
+        """Check if a LinkedIn profile URL is reachable and valid."""
+        try:
+            self._ensure_context(headless=True)
+            response = self._page.goto(profile_url, wait_until="domcontentloaded", timeout=15000)
+            
+            # 1. Check if we got redirected to auth wall (login challenge)
+            if "authwall" in self._page.url or "login" in self._page.url:
+                # We can't verify if we are blocked, but assuming we are logged in from previous steps
+                # If we are redirected to login, strictly speaking the profile *might* exist but we can't see it.
+                # However, usually means session invalid.
+                pass
+
+            # 1b. Check for explicit 404 redirect
+            if "/404/" in self._page.url:
+                self.close()
+                return False
+
+            # 2. Check page title and content for 404-like messages
+            # LinkedIn 404 pages often have "Page not found" or "Profile not available"
+            title = self._page.title()
+            content = self._page.content()
+            
+            if "Page not found" in title or "profile is not available" in content:
+                self.close()
+                return False
+            
+            # 3. If we are on a profile page, it usually contains "LinkedIn" in title and the name
+            # or the URL matches
+            self.close()
+            return True
+
+        except Exception as e:
+            logger.warning(f"Error checking profile existing: {e}")
+            self.close()
+            return False
+
     def _build_activity_url(self, profile_url: str) -> str:
-        """Build the recent activity URL from a profile URL."""
+        """Build the recent activity URL from a profile URL.
+        
+        Accepts various URL formats:
+        - https://www.linkedin.com/in/username/
+        - https://www.linkedin.com/in/username
+        - https://www.linkedin.com/in/username/recent-activity/all/
+        - username (will be converted to full URL)
+        
+        Returns:
+            Full activity URL with /recent-activity/all/ appended.
+        """
         # Normalize the URL
-        profile_url = profile_url.rstrip("/")
+        profile_url = profile_url.strip().rstrip("/")
+        
+        # If already has recent-activity, return as-is (with trailing slash)
         if "/recent-activity/" in profile_url:
-            return profile_url
-        # Remove any trailing path segments after the username
-        match = re.match(r"(https://www\.linkedin\.com/in/[^/]+)", profile_url)
+            return profile_url if profile_url.endswith("/") else profile_url + "/"
+        
+        # If it's just a username (no https://), convert to full URL
+        if not profile_url.startswith("http"):
+            profile_url = f"https://www.linkedin.com/in/{profile_url}"
+        
+        # Extract the base profile URL (everything up to and including the username)
+        # This handles URLs with or without trailing paths
+        match = re.match(r"(https://(?:www\.)?linkedin\.com/in/[^/?#]+)", profile_url)
         if match:
-            return f"{match.group(1)}/recent-activity/all/"
+            base_url = match.group(1)
+            return f"{base_url}/recent-activity/all/"
+        
+        # Fallback: just append to whatever was provided
         return f"{profile_url}/recent-activity/all/"
 
-    def _scroll_feed(self, max_scrolls: int = 0, on_status=None):
-        """Scroll the feed to load posts. Returns when no new content loads."""
+    def _scroll_feed(self, max_scrolls: int = 0, on_status=None, should_stop=None, on_scroll=None):
+        """Scroll the feed to load posts. Returns when no new content loads.
+        
+        Args:
+            on_scroll: Callback(scrolls) -> str. Returns extra status text.
+        """
         last_height = self._page.evaluate("document.body.scrollHeight")
         scrolls = 0
         no_change_count = 0
 
         while True:
+            # Check for cancellation
+            if should_stop and should_stop():
+                if on_status:
+                    on_status("Operation cancelled by user.")
+                break
+
             self._page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
             self._human_delay(self.DELAY_BETWEEN_SCROLLS)  # Human-like random delay
             new_height = self._page.evaluate("document.body.scrollHeight")
@@ -160,10 +344,26 @@ class LinkedInScraper:
             last_height = new_height
             scrolls += 1
 
+            # Determine if we should stop based on finding enough posts
+            stop_scrolling = False
             if on_status:
-                on_status(f"Scrolling... ({scrolls} scrolls)")
+                msg = f"Scrolling... ({scrolls} scrolls)"
+                if on_scroll:
+                    try:
+                        # on_scroll might return a status string OR True if we should stop
+                        result = on_scroll(scrolls)
+                        if result is True:
+                            stop_scrolling = True
+                        elif result:
+                            msg = f"{msg} | {result}"
+                    except:
+                        pass
+                on_status(msg)
+            
+            if stop_scrolling:
+                break
 
-    def scan_posts(self, profile_url: str, on_status=None) -> list[PostPreview]:
+    def scan_posts(self, profile_url: str, on_status=None, should_stop=None, on_data_count=None) -> list[PostPreview]:
         """Phase 1: Scan the feed and return a list of post previews with dates and headlines.
         
         Returns posts in the order they appear on the page (newest first).
@@ -181,11 +381,30 @@ class LinkedInScraper:
         if "login" in self._page.url:
             self.close()
             raise PermissionError("Not logged in. Please log in to LinkedIn first.")
+        
+        # Check for cancellation
+        if should_stop and should_stop():
+            self.close()
+            return []
 
         if on_status:
             on_status("Page loaded. Scrolling to load all posts...")
 
-        self._scroll_feed(on_status=on_status)
+        def get_scan_status(scrolls):
+            try:
+                count = self._page.evaluate("document.querySelectorAll('div.feed-shared-update-v2[data-urn*=\"activity\"]').length")
+                if on_data_count:
+                    on_data_count(count)
+                return f"Found {count} posts"
+            except:
+                return ""
+
+        self._scroll_feed(on_status=on_status, should_stop=should_stop, on_scroll=get_scan_status)
+        
+        # Check for cancellation before extraction
+        if should_stop and should_stop():
+            self.close()
+            return []
 
         if on_status:
             on_status("Extracting post previews...")
@@ -210,7 +429,7 @@ class LinkedInScraper:
             () => {
                 const posts = document.querySelectorAll('div.feed-shared-update-v2[data-urn*="activity"]');
                 const results = [];
-                console.log('Found posts:', posts.length);
+                console.log('DEBUG: scan_posts found ' + posts.length + ' posts');
                 posts.forEach((post, idx) => {
                     const urn = post.getAttribute('data-urn') || '';
 
@@ -250,6 +469,7 @@ class LinkedInScraper:
             }
         """)
 
+        print(f"[DEBUG] scan_posts extracted {len(previews_data)} previews")
         logger.info(f"Extracted {len(previews_data)} post previews")
         
         if not previews_data:
@@ -275,6 +495,8 @@ class LinkedInScraper:
         max_posts: int = 50,
         on_status=None,
         on_progress=None,
+        should_stop=None,
+        on_data_count=None,
     ) -> list[RawPost]:
         """Phase 2: Scrape full post content starting from a given index.
         
@@ -300,10 +522,36 @@ class LinkedInScraper:
             self.close()
             raise PermissionError("Not logged in. Please log in to LinkedIn first.")
 
+        if should_stop and should_stop():
+            self.close()
+            return []
+
         if on_status:
             on_status("Scrolling to load posts...")
 
-        self._scroll_feed(on_status=on_status)
+        def get_scrape_status(scrolls):
+            try:
+                count = self._page.evaluate("document.querySelectorAll('div.feed-shared-update-v2[data-urn*=\"activity\"]').length")
+                
+                # Check if we have enough posts (reached start_index)
+                if count > start_index:
+                    if on_status:
+                        on_status(f"Found {count} posts (reached target {start_index + 1})")
+                    if on_data_count:
+                        on_data_count(count)
+                    return True  # Stop scrolling
+                
+                if on_data_count:
+                    on_data_count(count)
+                return f"Found {count} posts (target: {start_index + 1})"
+            except:
+                return ""
+
+        self._scroll_feed(on_status=on_status, should_stop=should_stop, on_scroll=get_scrape_status)
+
+        if should_stop and should_stop():
+            self.close()
+            return []
 
         if on_status:
             on_status("Extracting post content...")
@@ -313,9 +561,6 @@ class LinkedInScraper:
             (startIndex) => {
                 const posts = document.querySelectorAll('div.feed-shared-update-v2[data-urn*="activity"]');
                 const results = [];
-                for (let i = startIndex; i >= 0 && i < posts.length; i--) {
-                    // We don't reverse here — we'll handle ordering in Python
-                }
                 // Actually, get all posts from startIndex down to 0 (oldest to newest on page = reversed)
                 const subset = Array.from(posts).slice(0, startIndex + 1);
                 subset.forEach((post, idx) => {
@@ -325,7 +570,8 @@ class LinkedInScraper:
                     results.push({
                         html: post.outerHTML,
                         dateText: dateText,
-                        elementId: urn
+                        elementId: urn,
+                        index: idx
                     });
                 });
                 return results;
@@ -340,12 +586,13 @@ class LinkedInScraper:
                 html=p["html"],
                 date_text=p["dateText"],
                 element_id=p["elementId"],
+                index=p["index"]
             )
             for p in reversed(posts_data)
         ]
 
-        # Limit to max_posts
-        raw_posts = raw_posts[:max_posts]
+        # Limit to max_posts (if needed, but usually we filter by selection)
+        # raw_posts = raw_posts[:max_posts] # We should respect selection in UI, not arbitrary max_posts here
 
         total = len(raw_posts)
         if on_progress:
