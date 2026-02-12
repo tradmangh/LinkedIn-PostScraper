@@ -106,7 +106,7 @@ def create_git_tag(version: str, message: str) -> bool:
 def push_tags() -> bool:
     """Push all tags to origin."""
     try:
-        result = subprocess.run(
+        subprocess.run(
             ['git', 'push', 'origin', '--tags'],
             capture_output=True,
             text=True,
