@@ -2,9 +2,32 @@
 
 This document explains how to create GitHub releases based on the CHANGELOG.md file.
 
-## Quick Start
+## Automated Process (Recommended)
 
-The easiest way to create releases is to use the automated script:
+The easiest way to create releases is using the GitHub Actions workflow:
+
+### Option 1: Manual Workflow Trigger
+
+1. Go to https://github.com/tradmangh/LinkedIn-PostScraper/actions
+2. Select "Create Releases" workflow
+3. Click "Run workflow"
+4. Select the branch (usually `main`)
+5. Click "Run workflow" button
+
+The workflow will:
+- Parse CHANGELOG.md
+- Create git tags (v1.0.0, v1.1.0, v1.2.0)
+- Push tags to GitHub
+- Create GitHub releases with full release notes
+- Trigger automated builds (executables will be attached automatically)
+
+### Option 2: Automatic on CHANGELOG Update
+
+The workflow also runs automatically when CHANGELOG.md is updated on the main branch.
+
+## Quick Start (Command Line)
+
+Alternatively, you can use the automated script locally:
 
 ```bash
 # Set your GitHub token (only needed once per session)

@@ -4,8 +4,18 @@ Script to create GitHub releases based on CHANGELOG.md entries.
 
 This script:
 1. Parses CHANGELOG.md for version entries
-2. Creates git tags for each version
+2. Creates git tags for each version (optional, can be skipped)
 3. Creates GitHub releases using the GitHub API
+
+Usage:
+  # Create tags and releases
+  python3 scripts/create_releases.py
+  
+  # Skip tag creation (e.g., tags already exist)
+  python3 scripts/create_releases.py --skip-tags
+  
+  # Skip pushing tags (e.g., will push manually)
+  python3 scripts/create_releases.py --skip-push
 """
 
 import re
@@ -112,6 +122,22 @@ def create_github_release(
     """Create a GitHub release using the API."""
     tag_name = f"v{version}"
     
+    # Check if release already exists
+    check_url = f"https://api.github.com/repos/{owner}/{repo}/releases/tags/{tag_name}"
+    headers = {
+        "Accept": "application/vnd.github+json",
+        "Authorization": f"Bearer {token}",
+        "X-GitHub-Api-Version": "2022-11-28"
+    }
+    
+    try:
+        check_response = requests.get(check_url, headers=headers)
+        if check_response.status_code == 200:
+            print(f"  Release {tag_name} already exists, skipping...")
+            return True
+    except requests.exceptions.RequestException:
+        pass  # Release doesn't exist, continue with creation
+    
     # Prepare release body
     release_body = f"""## 📝 What's New in v{version}
 
@@ -155,12 +181,6 @@ See [CHANGELOG.md](https://github.com/{owner}/{repo}/blob/main/CHANGELOG.md) for
     
     api_url = f"https://api.github.com/repos/{owner}/{repo}/releases"
     
-    headers = {
-        "Accept": "application/vnd.github+json",
-        "Authorization": f"Bearer {token}",
-        "X-GitHub-Api-Version": "2022-11-28"
-    }
-    
     data = {
         "tag_name": tag_name,
         "name": f"v{version}",
@@ -183,6 +203,15 @@ See [CHANGELOG.md](https://github.com/{owner}/{repo}/blob/main/CHANGELOG.md) for
 
 def main():
     """Main function."""
+    import argparse
+    
+    parser = argparse.ArgumentParser(description='Create GitHub releases from CHANGELOG.md')
+    parser.add_argument('--skip-tags', action='store_true',
+                       help='Skip git tag creation')
+    parser.add_argument('--skip-push', action='store_true',
+                       help='Skip pushing tags to remote')
+    args = parser.parse_args()
+    
     # Get repository info
     owner = "tradmangh"
     repo = "LinkedIn-PostScraper"
@@ -211,23 +240,32 @@ def main():
         print(f"  - v{version} ({date})")
     
     # Create tags
-    print("\nCreating git tags...")
-    for version, date, changelog in versions:
-        message = f"Release v{version}\n\n{changelog[:200]}"
-        create_git_tag(version, message)
+    if not args.skip_tags:
+        print("\nCreating git tags...")
+        for version, date, changelog in versions:
+            message = f"Release v{version}\n\n{changelog[:200]}"
+            create_git_tag(version, message)
+    else:
+        print("\nSkipping git tag creation (--skip-tags specified)")
     
     # Push tags
-    print("\nPushing tags to GitHub...")
-    if not push_tags():
-        print("Failed to push tags. Releases may not be created.")
-        sys.exit(1)
+    if not args.skip_push and not args.skip_tags:
+        print("\nPushing tags to GitHub...")
+        if not push_tags():
+            print("Failed to push tags. Releases may not be created.")
+            sys.exit(1)
+    else:
+        print("\nSkipping tag push (--skip-push or --skip-tags specified)")
     
     # Create GitHub releases
     print("\nCreating GitHub releases...")
+    success_count = 0
     for version, date, changelog in versions:
-        create_github_release(owner, repo, version, changelog, token)
+        if create_github_release(owner, repo, version, changelog, token):
+            success_count += 1
     
-    print("\n✅ Done! Check https://github.com/{}/{}/releases".format(owner, repo))
+    print(f"\n✅ Created {success_count}/{len(versions)} releases!")
+    print(f"Check https://github.com/{owner}/{repo}/releases")
 
 
 if __name__ == "__main__":
