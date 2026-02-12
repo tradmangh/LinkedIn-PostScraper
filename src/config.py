@@ -5,7 +5,7 @@ import os
 
 CONFIG_FILE = "config.json"
 DEFAULT_CONFIG = {
-    "output_folder": os.path.join("~", "LinkedIn-Posts"),
+    "output_folder": "~/LinkedIn-Posts",
     "browser_state_dir": "browser_state",
     "max_posts": 50,
     "appearance_mode": "system",  # "system", "light", or "dark"
