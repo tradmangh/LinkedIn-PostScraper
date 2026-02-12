@@ -557,7 +557,17 @@ class ScrapeFrame(ctk.CTkFrame):
         return True, True
 
     def _perform_delayed_validation(self, url: str, is_username_only: bool):
-        """Validate the profile URL. Called on UI thread via self.after()."""
+        """Validate the profile URL. 
+        
+        Called on UI thread via self.after(). Spawns a background thread for network I/O
+        and schedules UI updates back on the main thread.
+        """
+        
+        # Check if URL has changed since this validation was scheduled
+        current_url = self.url_entry.get().strip()
+        if current_url != url:
+            # User has typed something else, skip this validation
+            return
         
         target_url = url
         if is_username_only:
