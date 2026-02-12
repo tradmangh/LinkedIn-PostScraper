@@ -27,6 +27,7 @@ import sys
 from typing import Dict, List, Tuple
 import requests
 import os
+import textwrap
 
 # Constants
 MAX_TAG_MESSAGE_LENGTH = 200  # Maximum length of tag message before truncation
@@ -257,7 +258,13 @@ def main():
     if not args.skip_tags:
         print("\nCreating git tags...")
         for version, date, changelog in versions:
-            message = f"Release v{version}\n\n{changelog[:MAX_TAG_MESSAGE_LENGTH]}"
+            # Use textwrap.shorten to truncate at word boundaries
+            truncated = textwrap.shorten(
+                changelog,
+                width=MAX_TAG_MESSAGE_LENGTH,
+                placeholder="..."
+            )
+            message = f"Release v{version}\n\n{truncated}"
             create_git_tag(version, message)
     else:
         print("\nSkipping git tag creation (--skip-tags specified)")
