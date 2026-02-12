@@ -157,15 +157,28 @@ def create_git_tag(version: str, message: str) -> bool:
 
 
 def push_tags() -> bool:
-    """Push all tags to origin."""
+    """Push version tags (v*.*.*) to origin."""
     try:
-        subprocess.run(
-            ['git', 'push', 'origin', '--tags'],
+        # List version tags matching the v*.*.* pattern
+        list_result = subprocess.run(
+            ['git', 'tag', '-l', 'v*.*.*'],
             capture_output=True,
             text=True,
             check=True
         )
-        print("Successfully pushed all tags to origin")
+        tags = [tag.strip() for tag in list_result.stdout.splitlines() if tag.strip()]
+        if not tags:
+            print("No version tags matching 'v*.*.*' found to push")
+            return True
+
+        # Push only the matching version tags
+        subprocess.run(
+            ['git', 'push', 'origin', *tags],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        print(f"Successfully pushed version tags to origin: {', '.join(tags)}")
         return True
     except subprocess.CalledProcessError as e:
         print(f"Error pushing tags: {e}")
