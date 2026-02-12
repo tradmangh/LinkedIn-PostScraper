@@ -22,7 +22,8 @@ class App(ctk.CTk):
         
         # Calculate left half dimensions
         window_width = screen_width // 2
-        # Subtract taskbar height (typically 40-48px on Windows)
+        # Subtract approximate taskbar height (40px is an approximation; actual height varies by OS and settings)
+        # This ensures the window doesn't extend below the taskbar on most systems
         window_height = screen_height - 40
         
         # Position at left side (x=0, y=0)

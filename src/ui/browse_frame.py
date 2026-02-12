@@ -42,8 +42,6 @@ class BrowseFrame(ctk.CTkFrame):
         )
         self.open_folder_btn.grid(row=0, column=1, padx=(8, 0))
 
-        self.open_folder_btn.grid(row=0, column=1, padx=(8, 0))
-
         # --- File list header ---
         saved_header_frame = ctk.CTkFrame(self, fg_color=("gray90", "gray20"), corner_radius=6)
         saved_header_frame.grid(row=1, column=0, sticky="ew", pady=(4, 4), padx=(0, 8))

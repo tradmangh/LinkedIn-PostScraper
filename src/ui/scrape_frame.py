@@ -3,7 +3,6 @@
 
 import threading
 import customtkinter as ctk
-import time
 import random
 import tkinter as tk
 
@@ -23,9 +22,16 @@ class ToolTip:
     def show(self):
         if self.tooltip_window or not self.message:
             return
-        x, y, _, _ = self.widget.bbox("insert")
-        x += self.widget.winfo_rootx() + 25
-        y += self.widget.winfo_rooty() + 25
+        
+        # Position tooltip relative to the widget using geometry
+        widget_root_x = self.widget.winfo_rootx()
+        widget_root_y = self.widget.winfo_rooty()
+        widget_width = self.widget.winfo_width()
+        widget_height = self.widget.winfo_height()
+
+        # Place tooltip centered horizontally, slightly below the widget
+        x = widget_root_x + widget_width // 2
+        y = widget_root_y + widget_height + 10
         
         self.tooltip_window = ctk.CTkToplevel(self.widget)
         self.tooltip_window.wm_overrideredirect(True)
@@ -69,6 +75,7 @@ class ScrapeFrame(ctk.CTkFrame):
         
         self._validation_timer = None
         self._tooltip = None  # Will be attached to url_entry
+        self.selected_indices = set()  # Track selected post indices
 
         self.grid_rowconfigure(4, weight=1)  # post list gets the space
         self.grid_columnconfigure(0, weight=1)
@@ -357,9 +364,6 @@ class ScrapeFrame(ctk.CTkFrame):
         
         # Initialize drops
         width = self.post_list_frame.winfo_width()
-        height = self.post_list_frame.winfo_height()
-        # Increased font size -> increased column width (approx 24px)
-        font_size = 18
         col_width = 24
         columns = int(width / col_width)
         self.matrix_drops = [random.randint(-20, 0) for _ in range(columns)]
@@ -371,7 +375,6 @@ class ScrapeFrame(ctk.CTkFrame):
         if not self._matrix_running:
             return
             
-        width = self.post_list_frame.winfo_width()
         height = self.post_list_frame.winfo_height()
         col_width = 24
         
@@ -455,7 +458,8 @@ class ScrapeFrame(ctk.CTkFrame):
                 # Reset to normal state when animation stops
                 try:
                     self.login_btn.configure(fg_color=["#3B8ED0", "#1F6AA5"])
-                except:
+                except Exception:
+                    # Button may be destroyed, ignore
                     pass
                 return
             
@@ -474,7 +478,7 @@ class ScrapeFrame(ctk.CTkFrame):
                 
                 # Schedule next pulse
                 self.after(500, pulse)
-            except:
+            except Exception:
                 # If button is destroyed, stop animation
                 self._pulse_animation_active = False
         
@@ -486,7 +490,8 @@ class ScrapeFrame(ctk.CTkFrame):
         # Reset button to normal color
         try:
             self.login_btn.configure(fg_color=["#3B8ED0", "#1F6AA5"])
-        except:
+        except Exception:
+            # Button may be destroyed, ignore
             pass
 
     # ──────────── URL VALIDATION ────────────
@@ -544,6 +549,13 @@ class ScrapeFrame(ctk.CTkFrame):
 
     def _perform_delayed_validation(self, url: str, is_username_only: bool):
         """Background validation of the profile."""
+        
+        # Check if widget still exists
+        try:
+            if not self.winfo_exists():
+                return
+        except Exception:
+            return
         
         target_url = url
         if is_username_only:
@@ -617,8 +629,6 @@ class ScrapeFrame(ctk.CTkFrame):
                     scraper = self._get_scraper()
                     profile_url = scraper.open_login(on_status=lambda msg: self._set_status(msg, "working"))
                 
-                print(f"[DEBUG] Profile URL returned: {profile_url}")  # Debug
-                
                 # Mark as logged in
                 self._is_logged_in = True
                 self._stop_login_pulse()
@@ -633,22 +643,17 @@ class ScrapeFrame(ctk.CTkFrame):
                 
                 # If we got a profile URL, populate it in the entry field
                 if profile_url:
-                    print(f"[DEBUG] Populating URL field with: {profile_url}")  # Debug
-                    
                     def populate_url():
                         self.url_entry.delete(0, "end")
                         self.url_entry.insert(0, profile_url)
-                        print(f"[DEBUG] URL field populated. Current value: {self.url_entry.get()}")  # Debug
                     
                     self.after(0, populate_url)
                     # Trigger validation success immediately (we know it's valid from login)
                     self.after(100, lambda: self._on_validation_success(profile_url))
                     self._set_status(f"Login successful! Profile URL: {profile_url}", "success")
                 else:
-                    print("[DEBUG] No profile URL returned")  # Debug
                     self._set_status("Login successful! You can now enter a profile URL and scan posts.", "success")
             except Exception as e:
-                print(f"[DEBUG] Login error: {e}")  # Debug
                 import traceback
                 traceback.print_exc()
                 self._set_status(f"Login error: {e}", "error")
@@ -705,7 +710,6 @@ class ScrapeFrame(ctk.CTkFrame):
 
     def _populate_post_list(self):
         """Fill the post list with scan results."""
-        print(f"[DEBUG] Populating post list with {len(self.previews)} previews")
         # Clear existing
         for widget in self.post_list_frame.winfo_children():
             widget.destroy()
@@ -885,9 +889,6 @@ class ScrapeFrame(ctk.CTkFrame):
 
         def worker():
             try:
-                # Capture total for progress
-                total_selected = len(selected_indices)
-                
                 def on_scrape_count(count):
                     # During verify/scroll phase
                      self.after(0, lambda: self.post_count_label.configure(text=f"(Found {count})"))

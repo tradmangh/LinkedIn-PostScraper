@@ -243,14 +243,14 @@ class LinkedInScraper:
         """Check if a LinkedIn profile URL is reachable and valid."""
         try:
             self._ensure_context(headless=True)
-            response = self._page.goto(profile_url, wait_until="domcontentloaded", timeout=15000)
+            self._page.goto(profile_url, wait_until="domcontentloaded", timeout=15000)
             
             # 1. Check if we got redirected to auth wall (login challenge)
             if "authwall" in self._page.url or "login" in self._page.url:
-                # We can't verify if we are blocked, but assuming we are logged in from previous steps
-                # If we are redirected to login, strictly speaking the profile *might* exist but we can't see it.
-                # However, usually means session invalid.
-                pass
+                # Redirected to login/authwall, so we cannot access the profile content.
+                # Treat this as "profile not reachable" for the purposes of this check.
+                self.close()
+                return False
 
             # 1b. Check for explicit 404 redirect
             if "/404/" in self._page.url:
@@ -272,7 +272,7 @@ class LinkedInScraper:
             return True
 
         except Exception as e:
-            logger.warning(f"Error checking profile existing: {e}")
+            logger.warning(f"Error checking if profile exists: {e}")
             self.close()
             return False
 
@@ -356,8 +356,9 @@ class LinkedInScraper:
                             stop_scrolling = True
                         elif result:
                             msg = f"{msg} | {result}"
-                    except:
-                        pass
+                    except Exception as exc:
+                        # Callback error should not stop scrolling
+                        logger.warning("Error in on_scroll callback at scroll %d: %s", scrolls, exc)
                 on_status(msg)
             
             if stop_scrolling:
@@ -396,7 +397,8 @@ class LinkedInScraper:
                 if on_data_count:
                     on_data_count(count)
                 return f"Found {count} posts"
-            except:
+            except Exception:
+                # Query evaluation failed, return empty status
                 return ""
 
         self._scroll_feed(on_status=on_status, should_stop=should_stop, on_scroll=get_scan_status)
@@ -469,7 +471,6 @@ class LinkedInScraper:
             }
         """)
 
-        print(f"[DEBUG] scan_posts extracted {len(previews_data)} previews")
         logger.info(f"Extracted {len(previews_data)} post previews")
         
         if not previews_data:
@@ -544,7 +545,8 @@ class LinkedInScraper:
                 if on_data_count:
                     on_data_count(count)
                 return f"Found {count} posts (target: {start_index + 1})"
-            except:
+            except Exception:
+                # Query evaluation failed, return empty status
                 return ""
 
         self._scroll_feed(on_status=on_status, should_stop=should_stop, on_scroll=get_scrape_status)
