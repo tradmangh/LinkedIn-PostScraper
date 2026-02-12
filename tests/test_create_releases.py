@@ -2,7 +2,6 @@
 Tests for the create_releases.py script.
 """
 
-import pytest
 import sys
 from pathlib import Path
 
