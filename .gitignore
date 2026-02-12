@@ -30,6 +30,12 @@ browser_state/
 output/
 debug/
 
+# Test coverage
+.coverage
+htmlcov/
+coverage.xml
+.pytest_cache/
+
 # Config (may contain sensitive data)
 config.json
 
