@@ -10,15 +10,19 @@ This PR contains complete automation to create GitHub releases based on CHANGELO
   - Manual trigger via GitHub Actions UI
   - Automatic when CHANGELOG.md is updated on main branch
 - **What it does**:
-  - Creates git tags: v1.0.0, v1.1.0, v1.2.0
+  - Parses CHANGELOG.md to extract all version entries
+  - Creates git tags for each version found
   - Pushes tags to GitHub
-  - Creates releases with formatted release notes from CHANGELOG.md
-  - Triggers the build workflow to attach executables
+  - Triggers the existing build.yml workflow which:
+    - Builds executables for all platforms
+    - Creates draft releases with executables attached
 
 ### 2. Python Script
 - **File**: `scripts/create_releases.py`
-- Standalone script that can create releases locally
-- Can also be used by the GitHub Actions workflow
+- Parses CHANGELOG.md using regex to extract versions and release notes
+- Creates tags dynamically from CHANGELOG entries (not hard-coded)
+- Can create tags only (`--skip-releases`) or tags + releases
+- Supports custom owner/repo via CLI args or auto-detection
 
 ### 3. Documentation
 - **RELEASES.md**: Complete guide for creating releases
@@ -35,9 +39,10 @@ This PR contains complete automation to create GitHub releases based on CHANGELO
 5. Wait for the workflow to complete
 6. Check releases at: https://github.com/tradmangh/LinkedIn-PostScraper/releases
 
-The three releases (v1.0.0, v1.1.0, v1.2.0) will be created automatically with:
-- Formatted release notes from CHANGELOG.md
-- Installation instructions
+The workflow will:
+- Parse CHANGELOG.md to find all versions
+- Create and push tags for each version
+- Trigger build.yml which creates draft releases with executables
 - Download links for executables (attached after build completes)
 
 ### Option 2: Manual Process

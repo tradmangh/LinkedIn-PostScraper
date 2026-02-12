@@ -24,15 +24,66 @@ Usage:
 import re
 import subprocess
 import sys
-from typing import Dict, List, Tuple
+from typing import List, Tuple
 import requests
 import os
 import textwrap
 
 # Constants
-MAX_TAG_MESSAGE_LENGTH = 200  # Maximum length of tag message before truncation
-DEFAULT_OWNER = "tradmangh"
-DEFAULT_REPO = "LinkedIn-PostScraper"
+MAX_TAG_MESSAGE_LENGTH = 200  # Maximum length of changelog text included in a tag message before truncation
+
+
+def _get_default_owner_repo() -> Tuple[str, str]:
+    """
+    Determine the default GitHub owner and repository.
+
+    Preference order:
+      1. GITHUB_REPOSITORY environment variable (owner/repo)
+      2. Git remote.origin.url
+      3. Hard-coded fallback (original behavior)
+    """
+    # 1. Try GitHub Actions environment variable
+    github_repo = os.getenv("GITHUB_REPOSITORY")
+    if github_repo and "/" in github_repo:
+        owner, repo = github_repo.split("/", 1)
+        if owner and repo:
+            return owner, repo
+
+    # 2. Try git remote.origin.url
+    try:
+        result = subprocess.run(
+            ["git", "config", "--get", "remote.origin.url"],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        url = result.stdout.strip()
+
+        # Handle SSH URLs: git@github.com:owner/repo.git
+        if url.startswith("git@github.com:"):
+            path = url.split("git@github.com:", 1)[1]
+        # Handle HTTPS URLs: https://github.com/owner/repo.git
+        elif "github.com/" in url:
+            path = url.split("github.com/", 1)[1]
+        else:
+            path = ""
+
+        if path:
+            if path.endswith(".git"):
+                path = path[:-4]
+            if "/" in path:
+                owner, repo = path.split("/", 1)
+                if owner and repo:
+                    return owner, repo
+    except subprocess.CalledProcessError:
+        # If git is not available or remote is not configured, fall back
+        pass
+
+    # 3. Fallback to original hard-coded defaults
+    return "tradmangh", "LinkedIn-PostScraper"
+
+
+DEFAULT_OWNER, DEFAULT_REPO = _get_default_owner_repo()
 
 def parse_changelog(changelog_path: str) -> List[Tuple[str, str, str]]:
     """
@@ -126,7 +177,8 @@ def create_github_release(
     repo: str,
     version: str,
     changelog: str,
-    token: str
+    token: str,
+    timeout: int = 30
 ) -> bool:
     """Create a GitHub release using the API."""
     tag_name = f"v{version}"
@@ -140,12 +192,30 @@ def create_github_release(
     }
     
     try:
-        check_response = requests.get(check_url, headers=headers)
-        if check_response.status_code == 200:
-            print(f"  Release {tag_name} already exists, skipping...")
-            return True
-    except requests.exceptions.RequestException:
-        pass  # Release doesn't exist, continue with creation
+        check_response = requests.get(check_url, headers=headers, timeout=timeout)
+    except requests.exceptions.RequestException as e:
+        print(f"  Error checking for existing release {tag_name}: {e}")
+        return False
+
+    if check_response.status_code == 200:
+        print(f"  Release {tag_name} already exists, skipping...")
+        return True
+    elif check_response.status_code == 404:
+        # Release doesn't exist, continue with creation
+        pass
+    elif check_response.status_code in (401, 403):
+        print(
+            f"  Authentication/authorization error when checking for existing release {tag_name}: "
+            f"HTTP {check_response.status_code}. Please verify your GitHub token has access to "
+            f"{owner}/{repo}."
+        )
+        return False
+    else:
+        print(
+            f"  Unexpected response when checking for existing release {tag_name}: "
+            f"HTTP {check_response.status_code} - {check_response.text}"
+        )
+        return False
     
     # Prepare release body
     release_body = f"""## 📝 What's New in v{version}
@@ -199,7 +269,7 @@ See [CHANGELOG.md](https://github.com/{owner}/{repo}/blob/main/CHANGELOG.md) for
     }
     
     try:
-        response = requests.post(api_url, json=data, headers=headers)
+        response = requests.post(api_url, json=data, headers=headers, timeout=timeout)
         response.raise_for_status()
         print(f"  Created GitHub release: {tag_name}")
         return True
@@ -219,6 +289,8 @@ def main():
                        help='Skip git tag creation')
     parser.add_argument('--skip-push', action='store_true',
                        help='Skip pushing tags to remote')
+    parser.add_argument('--skip-releases', action='store_true',
+                       help='Skip creating GitHub releases (only create/push tags)')
     parser.add_argument('--owner', default=DEFAULT_OWNER,
                        help=f'Repository owner (default: {DEFAULT_OWNER})')
     parser.add_argument('--repo', default=DEFAULT_REPO,
@@ -231,16 +303,6 @@ def main():
     owner = args.owner
     repo = args.repo
     changelog_path = args.changelog
-    
-    # Get GitHub token from environment
-    token = os.environ.get('GITHUB_TOKEN')
-    if not token:
-        print("Error: GITHUB_TOKEN environment variable not set")
-        print("\nTo use this script:")
-        print("1. Create a GitHub personal access token with 'repo' scope")
-        print("2. Export it: export GITHUB_TOKEN='your_token_here'")
-        print("3. Run this script again")
-        sys.exit(1)
     
     # Parse changelog
     print(f"Parsing {changelog_path}...")
@@ -265,7 +327,9 @@ def main():
                 placeholder="..."
             )
             message = f"Release v{version}\n\n{truncated}"
-            create_git_tag(version, message)
+            if not create_git_tag(version, message):
+                print(f"Failed to create git tag for version v{version}. Aborting before pushing tags or creating releases.")
+                sys.exit(1)
     else:
         print("\nSkipping git tag creation (--skip-tags specified)")
     
@@ -279,14 +343,28 @@ def main():
         print("\nSkipping tag push (--skip-push or --skip-tags specified)")
     
     # Create GitHub releases
-    print("\nCreating GitHub releases...")
-    success_count = 0
-    for version, date, changelog in versions:
-        if create_github_release(owner, repo, version, changelog, token):
-            success_count += 1
-    
-    print(f"\n✅ Created {success_count}/{len(versions)} releases!")
-    print(f"Check https://github.com/{owner}/{repo}/releases")
+    if not args.skip_releases:
+        # Get GitHub token from environment
+        token = os.environ.get('GITHUB_TOKEN')
+        if not token:
+            print("Error: GITHUB_TOKEN environment variable not set")
+            print("\nTo create releases, you need a GitHub token:")
+            print("1. Create a GitHub personal access token with 'repo' scope")
+            print("2. Export it: export GITHUB_TOKEN='your_token_here'")
+            print("3. Run this script again")
+            sys.exit(1)
+        
+        print("\nCreating GitHub releases...")
+        success_count = 0
+        for version, date, changelog in versions:
+            if create_github_release(owner, repo, version, changelog, token):
+                success_count += 1
+        
+        print(f"\n✅ Created {success_count}/{len(versions)} releases!")
+        print(f"Check https://github.com/{owner}/{repo}/releases")
+    else:
+        print("\nSkipping GitHub release creation (--skip-releases specified)")
+        print("Tags have been pushed. The build workflow will create releases automatically.")
 
 
 if __name__ == "__main__":

@@ -15,7 +15,7 @@ This script automates the creation of GitHub releases based on `CHANGELOG.md` en
 4. Creates GitHub releases with detailed release notes
 
 **Prerequisites:**
-- Python 3.7+
+- Python 3.8+
 - `requests` library installed (`pip install requests`)
 - GitHub personal access token with `repo` scope
 

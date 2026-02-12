@@ -15,11 +15,13 @@ The easiest way to create releases is using the GitHub Actions workflow:
 5. Click "Run workflow" button
 
 The workflow will:
-- Parse CHANGELOG.md
-- Create git tags (v1.0.0, v1.1.0, v1.2.0)
+- Parse CHANGELOG.md to extract all version entries
+- Create git tags for each version found
 - Push tags to GitHub
-- Create GitHub releases with full release notes
-- Trigger automated builds (executables will be attached automatically)
+- Trigger the existing build workflow (build.yml) which automatically:
+  - Builds executables for Windows, macOS, and Linux
+  - Creates draft releases with the built executables attached
+  - Adds installation instructions to each release
 
 ### Option 2: Automatic on CHANGELOG Update
 
@@ -30,19 +32,15 @@ The workflow also runs automatically when CHANGELOG.md is updated on the main br
 Alternatively, you can use the automated script locally:
 
 ```bash
-# Set your GitHub token (only needed once per session)
-export GITHUB_TOKEN='your_github_personal_access_token'
+# Option A: Just create and push tags (let build.yml create releases)
+python3 scripts/create_releases.py --skip-releases
 
-# Run the release script
+# Option B: Create tags AND releases directly (requires GitHub token)
+export GITHUB_TOKEN='your_github_personal_access_token'
 python3 scripts/create_releases.py
 ```
 
-This will:
-1. Parse CHANGELOG.md
-2. Create git tags (v1.0.0, v1.1.0, v1.2.0)
-3. Push tags to GitHub
-4. Create GitHub releases with full release notes
-5. Trigger automated builds (executables will be attached automatically)
+**Note:** Option A is recommended as it leverages the existing build.yml workflow to create releases with executables attached.
 
 ## Manual Process
 

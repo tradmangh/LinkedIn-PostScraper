@@ -36,53 +36,12 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
       
-      - name: Create and push tags
+      - name: Create and push tags from CHANGELOG
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Check which tags already exist
-          existing_tags=$(git tag -l)
-          
-          # Create tags if they don't exist
-          if ! echo "$existing_tags" | grep -q "^v1.0.0$"; then
-            echo "Creating tag v1.0.0..."
-            git tag -a v1.0.0 -m "Release v1.0.0 - Initial release
-
-          - Playwright-based web scraping with persistent browser sessions
-          - Two-phase workflow: scan posts -> select range -> scrape  
-          - CustomTkinter modern Windows UI
-          - Markdown output with YAML frontmatter
-          - Post browser tab to view saved posts"
-          fi
-          
-          if ! echo "$existing_tags" | grep -q "^v1.1.0$"; then
-            echo "Creating tag v1.1.0..."
-            git tag -a v1.1.0 -m "Release v1.1.0 - Testing infrastructure
-
-          - Automated test suite with pytest
-          - 40+ unit and integration tests
-          - GitHub Actions CI/CD workflow
-          - Engagement metrics in Post dataclass
-          - Human-like scraping delays"
-          fi
-          
-          if ! echo "$existing_tags" | grep -q "^v1.2.0$"; then
-            echo "Creating tag v1.2.0..."
-            git tag -a v1.2.0 -m "Release v1.2.0 - Cross-platform executables
-
-          - Cross-platform executables for Windows, macOS, and Linux
-          - Two build variants: Standalone and Full Bundle
-          - Automated builds via GitHub Actions
-          - Person subfolders for post organization
-          - UI cleanup and version updates"
-          fi
-          
-          # Push tags
-          echo "Pushing tags..."
-          git push origin --tags
-      
-      - name: Create releases
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          python3 scripts/create_releases.py --skip-tags --skip-push
+          # Use the script to create tags from CHANGELOG.md
+          # This will parse the CHANGELOG and create tags for all versions found
+          # The --skip-push flag is not used because we want to push tags here
+          # Tags will trigger the build.yml workflow which creates releases
+          python3 scripts/create_releases.py --skip-releases
