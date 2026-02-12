@@ -48,33 +48,33 @@ jobs:
             echo "Creating tag v1.0.0..."
             git tag -a v1.0.0 -m "Release v1.0.0 - Initial release
 
-- Playwright-based web scraping with persistent browser sessions
-- Two-phase workflow: scan posts → select range → scrape  
-- CustomTkinter modern Windows UI
-- Markdown output with YAML frontmatter
-- Post browser tab to view saved posts"
+          - Playwright-based web scraping with persistent browser sessions
+          - Two-phase workflow: scan posts -> select range -> scrape  
+          - CustomTkinter modern Windows UI
+          - Markdown output with YAML frontmatter
+          - Post browser tab to view saved posts"
           fi
           
           if ! echo "$existing_tags" | grep -q "^v1.1.0$"; then
             echo "Creating tag v1.1.0..."
             git tag -a v1.1.0 -m "Release v1.1.0 - Testing infrastructure
 
-- Automated test suite with pytest
-- 40+ unit and integration tests
-- GitHub Actions CI/CD workflow
-- Engagement metrics in Post dataclass
-- Human-like scraping delays"
+          - Automated test suite with pytest
+          - 40+ unit and integration tests
+          - GitHub Actions CI/CD workflow
+          - Engagement metrics in Post dataclass
+          - Human-like scraping delays"
           fi
           
           if ! echo "$existing_tags" | grep -q "^v1.2.0$"; then
             echo "Creating tag v1.2.0..."
             git tag -a v1.2.0 -m "Release v1.2.0 - Cross-platform executables
 
-- Cross-platform executables for Windows, macOS, and Linux
-- Two build variants: Standalone and Full Bundle
-- Automated builds via GitHub Actions
-- Person subfolders for post organization
-- UI cleanup and version updates"
+          - Cross-platform executables for Windows, macOS, and Linux
+          - Two build variants: Standalone and Full Bundle
+          - Automated builds via GitHub Actions
+          - Person subfolders for post organization
+          - UI cleanup and version updates"
           fi
           
           # Push tags
