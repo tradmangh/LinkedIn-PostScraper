@@ -1,6 +1,7 @@
 """Scrape tab — URL input, login, post scanning, and scraping with progress."""
 
 
+import logging
 import threading
 import customtkinter as ctk
 import random
@@ -10,6 +11,8 @@ from ..scraper import LinkedInScraper, PostPreview
 from ..parser import parse_post
 from ..storage import save_posts
 from ..config import get_output_folder, get_browser_state_dir
+
+logger = logging.getLogger(__name__)
 
 
 class ToolTip:
@@ -28,14 +31,9 @@ class ToolTip:
         widget_root_y = self.widget.winfo_rooty()
         widget_width = self.widget.winfo_width()
         widget_height = self.widget.winfo_height()
-
-        # Place tooltip centered horizontally, slightly below the widget
-        x = widget_root_x + widget_width // 2
-        y = widget_root_y + widget_height + 10
         
         self.tooltip_window = ctk.CTkToplevel(self.widget)
         self.tooltip_window.wm_overrideredirect(True)
-        self.tooltip_window.wm_geometry(f"+{x}+{y}")
         
         label = ctk.CTkLabel(
             self.tooltip_window, 
@@ -46,6 +44,16 @@ class ToolTip:
             font=ctk.CTkFont(size=12)
         )
         label.pack(ipadx=8, ipady=4)
+        
+        # Update to get actual tooltip dimensions
+        self.tooltip_window.update_idletasks()
+        tooltip_width = self.tooltip_window.winfo_width()
+        
+        # Center tooltip horizontally relative to widget, slightly below it
+        x = widget_root_x + (widget_width - tooltip_width) // 2
+        y = widget_root_y + widget_height + 10
+        
+        self.tooltip_window.wm_geometry(f"+{x}+{y}")
 
     def hide(self):
         if self.tooltip_window:
@@ -73,7 +81,7 @@ class ScrapeFrame(ctk.CTkFrame):
         self.matrix_canvas = None
         self.matrix_chars = []
         
-        self._validation_timer = None
+        self._validation_after_id = None  # Store after callback ID for cancellation
         self._tooltip = None  # Will be attached to url_entry
         self.selected_indices = set()  # Track selected post indices
 
@@ -500,9 +508,10 @@ class ScrapeFrame(ctk.CTkFrame):
         """Validate URL and enable/disable scan button. Debounce deep validation."""
         url = self.url_entry.get().strip()
         
-        # Reset timer
-        if self._validation_timer:
-            self._validation_timer.cancel()
+        # Cancel pending validation
+        if self._validation_after_id:
+            self.after_cancel(self._validation_after_id)
+            self._validation_after_id = None
         
         # Reset tooltip/style
         self._tooltip.update_message("")
@@ -527,8 +536,8 @@ class ScrapeFrame(ctk.CTkFrame):
         # User requested: "postfix the validate if the URL exists/is reachable"
         # So wait for debounce
         
-        self._validation_timer = threading.Timer(1.5, lambda: self._perform_delayed_validation(url, is_username_only))
-        self._validation_timer.start()
+        # Schedule validation on UI thread (thread-safe)
+        self._validation_after_id = self.after(1500, lambda: self._perform_delayed_validation(url, is_username_only))
     
     def _check_url_format(self, url: str) -> tuple[bool, bool]:
         """Check format. Returns (is_valid_format, is_username_only)."""
@@ -548,14 +557,7 @@ class ScrapeFrame(ctk.CTkFrame):
         return True, True
 
     def _perform_delayed_validation(self, url: str, is_username_only: bool):
-        """Background validation of the profile."""
-        
-        # Check if widget still exists
-        try:
-            if not self.winfo_exists():
-                return
-        except Exception:
-            return
+        """Validate the profile URL. Called on UI thread via self.after()."""
         
         target_url = url
         if is_username_only:
@@ -654,8 +656,7 @@ class ScrapeFrame(ctk.CTkFrame):
                 else:
                     self._set_status("Login successful! You can now enter a profile URL and scan posts.", "success")
             except Exception as e:
-                import traceback
-                traceback.print_exc()
+                logger.exception("Login error occurred")
                 self._set_status(f"Login error: {e}", "error")
             finally:
                 self._set_buttons(True)
