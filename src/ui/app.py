@@ -158,7 +158,7 @@ class App(ctk.CTk):
         from tkinter import messagebox
         messagebox.showinfo(
             "About LinkedIn Post Scraper",
-            "LinkedIn Post Scraper v1.2\n\n"
+            "LinkedIn Post Scraper v1.3.0\n\n"
             "A tool for archiving LinkedIn posts as markdown files.\n\n"
             "Co-created by:\n"
             "• Google Antigravity (AI Agent)\n"
