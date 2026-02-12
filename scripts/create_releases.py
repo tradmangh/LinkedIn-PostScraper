@@ -113,8 +113,8 @@ def parse_changelog(changelog_path: str) -> List[Tuple[str, str, str]]:
         if i + 1 < len(matches):
             end_pos = matches[i + 1].start()
         else:
-            # Find the end marker (## AI Agent Instructions or end of file)
-            end_marker = content.find('---', start_pos)
+            # Find the end marker (## AI Agent Instructions header or end of file)
+            end_marker = content.find('## AI Agent Instructions', start_pos)
             if end_marker != -1:
                 end_pos = end_marker
             else:
