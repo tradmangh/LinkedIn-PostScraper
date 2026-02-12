@@ -359,6 +359,15 @@ def main():
     
     # Create GitHub releases
     if not args.skip_releases:
+        # Verify tags were pushed before creating releases
+        if args.skip_push:
+            print("\nError: Cannot create GitHub releases with --skip-push")
+            print("Releases require tags to be pushed to GitHub first.")
+            print("Either:")
+            print("  1. Remove --skip-push to push tags and create releases")
+            print("  2. Add --skip-releases to only create/push tags (recommended)")
+            sys.exit(1)
+        
         # Get GitHub token from environment
         token = os.environ.get('GITHUB_TOKEN')
         if not token:
@@ -379,7 +388,8 @@ def main():
         print(f"Check https://github.com/{owner}/{repo}/releases")
     else:
         print("\nSkipping GitHub release creation (--skip-releases specified)")
-        print("Tags have been pushed. The build workflow will create releases automatically.")
+        if not args.skip_push and not args.skip_tags:
+            print("Tags have been pushed. The build workflow will create releases automatically.")
 
 
 if __name__ == "__main__":
