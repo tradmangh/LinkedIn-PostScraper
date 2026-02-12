@@ -77,8 +77,8 @@ def _get_default_owner_repo() -> Tuple[str, str]:
                 owner, repo = path.split("/", 1)
                 if owner and repo:
                     return owner, repo
-    except subprocess.CalledProcessError:
-        # If git is not available or remote is not configured, fall back
+    except (subprocess.CalledProcessError, FileNotFoundError, OSError):
+        # If git is not available, not on PATH, or remote is not configured, fall back
         pass
 
     # 3. Fallback to original hard-coded defaults
