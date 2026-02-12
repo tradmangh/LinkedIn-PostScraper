@@ -16,6 +16,9 @@ Usage:
   
   # Skip pushing tags (e.g., will push manually)
   python3 scripts/create_releases.py --skip-push
+  
+  # Specify different repository
+  python3 scripts/create_releases.py --owner=myuser --repo=myrepo
 """
 
 import re
@@ -24,6 +27,11 @@ import sys
 from typing import Dict, List, Tuple
 import requests
 import os
+
+# Constants
+MAX_TAG_MESSAGE_LENGTH = 200  # Maximum length of tag message before truncation
+DEFAULT_OWNER = "tradmangh"
+DEFAULT_REPO = "LinkedIn-PostScraper"
 
 def parse_changelog(changelog_path: str) -> List[Tuple[str, str, str]]:
     """
@@ -210,12 +218,18 @@ def main():
                        help='Skip git tag creation')
     parser.add_argument('--skip-push', action='store_true',
                        help='Skip pushing tags to remote')
+    parser.add_argument('--owner', default=DEFAULT_OWNER,
+                       help=f'Repository owner (default: {DEFAULT_OWNER})')
+    parser.add_argument('--repo', default=DEFAULT_REPO,
+                       help=f'Repository name (default: {DEFAULT_REPO})')
+    parser.add_argument('--changelog', default='CHANGELOG.md',
+                       help='Path to CHANGELOG file (default: CHANGELOG.md)')
     args = parser.parse_args()
     
-    # Get repository info
-    owner = "tradmangh"
-    repo = "LinkedIn-PostScraper"
-    changelog_path = "CHANGELOG.md"
+    # Get repository info from args
+    owner = args.owner
+    repo = args.repo
+    changelog_path = args.changelog
     
     # Get GitHub token from environment
     token = os.environ.get('GITHUB_TOKEN')
@@ -228,11 +242,11 @@ def main():
         sys.exit(1)
     
     # Parse changelog
-    print("Parsing CHANGELOG.md...")
+    print(f"Parsing {changelog_path}...")
     versions = parse_changelog(changelog_path)
     
     if not versions:
-        print("No versions found in CHANGELOG.md")
+        print(f"No versions found in {changelog_path}")
         sys.exit(1)
     
     print(f"Found {len(versions)} versions to release:")
@@ -243,7 +257,7 @@ def main():
     if not args.skip_tags:
         print("\nCreating git tags...")
         for version, date, changelog in versions:
-            message = f"Release v{version}\n\n{changelog[:200]}"
+            message = f"Release v{version}\n\n{changelog[:MAX_TAG_MESSAGE_LENGTH]}"
             create_git_tag(version, message)
     else:
         print("\nSkipping git tag creation (--skip-tags specified)")
