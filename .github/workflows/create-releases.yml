@@ -1,0 +1,47 @@
+name: Create Releases
+
+on:
+  workflow_dispatch:  # Allow manual trigger
+  push:
+    branches:
+      - main
+    paths:
+      - 'CHANGELOG.md'
+
+jobs:
+  create-releases:
+    name: Create Releases from CHANGELOG
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch all history for tags
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests
+      
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+      
+      - name: Create and push tags from CHANGELOG
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Use the script to create tags from CHANGELOG.md
+          # This will parse the CHANGELOG and create tags for all versions found
+          # The --skip-push flag is not used because we want to push tags here
+          # Tags will trigger the build.yml workflow which creates releases
+          python3 scripts/create_releases.py --skip-releases
