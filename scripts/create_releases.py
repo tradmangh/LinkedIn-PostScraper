@@ -359,12 +359,12 @@ def main():
     
     # Create GitHub releases
     if not args.skip_releases:
-        # Verify tags were pushed before creating releases
-        if args.skip_push:
-            print("\nError: Cannot create GitHub releases with --skip-push")
-            print("Releases require tags to be pushed to GitHub first.")
+        # Verify tags were created and pushed before creating releases
+        if args.skip_push or args.skip_tags:
+            print("\nError: Cannot create GitHub releases with --skip-push or --skip-tags")
+            print("Releases require tags to be created and pushed to GitHub first.")
             print("Either:")
-            print("  1. Remove --skip-push to push tags and create releases")
+            print("  1. Remove --skip-push/--skip-tags to create and push tags, then create releases")
             print("  2. Add --skip-releases to only create/push tags (recommended)")
             sys.exit(1)
         
