@@ -85,7 +85,9 @@ def _get_default_owner_repo() -> Tuple[str, str]:
     return "tradmangh", "LinkedIn-PostScraper"
 
 
-DEFAULT_OWNER, DEFAULT_REPO = _get_default_owner_repo()
+# Use simple static defaults at import time to avoid running git in global scope.
+DEFAULT_OWNER = "tradmangh"
+DEFAULT_REPO = "LinkedIn-PostScraper"
 
 def parse_changelog(changelog_path: str) -> List[Tuple[str, str, str]]:
     """
