@@ -281,7 +281,8 @@ See [CHANGELOG.md](https://github.com/{owner}/{repo}/blob/main/CHANGELOG.md) for
         "tag_name": tag_name,
         "name": f"v{version}",
         "body": release_body,
-        "draft": False,
+        # Create releases as drafts to align with build.yml (softprops/action-gh-release uses draft: true)
+        "draft": True,
         "prerelease": False
     }
     
