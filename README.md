@@ -1,7 +1,11 @@
 # LinkedIn Post Scraper
 
+[![Windows](https://img.shields.io/badge/Windows-0078D6?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/tradmangh/LinkedIn-PostScraper/releases)
+[![macOS](https://img.shields.io/badge/macOS-000000?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/tradmangh/LinkedIn-PostScraper/releases)
+[![Linux](https://img.shields.io/badge/Linux-FCC624?style=for-the-badge&logo=linux&logoColor=black)](https://github.com/tradmangh/LinkedIn-PostScraper/releases)
+
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
 A Python desktop application that scrapes LinkedIn posts from activity feeds and saves them as organized markdown files. Perfect for archiving thought leadership content, building personal knowledge bases, or analyzing posting patterns.
@@ -36,7 +40,9 @@ A Python desktop application that scrapes LinkedIn posts from activity feeds and
 
 ### Option 1: Download Pre-Built Executable (Recommended)
 
-**No Python installation required!** Download the latest release for your platform:
+**No installation needed!** This is a **portable application** - just download and run.
+**You do NOT need to have Python installed.**
+Download the latest release for your platform:
 
 #### 📦 [Download from Releases](https://github.com/tradmangh/LinkedIn-PostScraper/releases)
 
@@ -63,7 +69,7 @@ A Python desktop application that scrapes LinkedIn posts from activity feeds and
 
 #### Prerequisites
 
-- Python 3.8 or higher
+- Python 3.9 or higher
 - Windows (tested), macOS/Linux (should work)
 
 #### Installation
@@ -204,6 +210,7 @@ Contributions are welcome! This project was co-created by:
 
 - **Google Antigravity** (AI Agent)
 - **Anthropic Claude Opus 4.6 & Sonnet 4.5** (AI Models)
+- **Google Gemini 3.0** (AI Model)
 
 ### Development Guidelines
 
@@ -216,12 +223,13 @@ See [CHANGELOG.md](CHANGELOG.md) for detailed AI agent instructions.
 
 ## 📋 Roadmap
 
-- [ ] AI-powered topic tagging (Google Gemini integration)
+- [x] Filter Posts
+- [ ] Open LLM CLI for post analysis
+- [ ] Scrape Articles
+- [ ] Scrape Comments
 - [ ] Automatic folder organization by topic
-- [ ] Export to PDF/HTML
-- [ ] Multi-profile batch scraping
 - [ ] Scheduled automatic updates
-- [ ] Search and filter saved posts
+- [ ] AI-powered topic tagging (Google Gemini integration)
 
 ## ⚠️ Disclaimer
 

@@ -42,9 +42,11 @@ config.json
 # IDE
 .vscode/
 .idea/
+.agents/
 *.swp
 *.swo
 *~
+AGENTS.md
 
 # OS
 .DS_Store

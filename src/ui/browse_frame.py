@@ -13,8 +13,9 @@ class BrowseFrame(ctk.CTkFrame):
     def __init__(self, parent, config: dict):
         super().__init__(parent, fg_color="transparent")
         self.config = config
+        self.all_files = []  # Cache for filtering
 
-        self.grid_rowconfigure(1, weight=1)
+        self.grid_rowconfigure(2, weight=1)
         self.grid_columnconfigure(0, weight=1)
         self.grid_columnconfigure(1, weight=2)
 
@@ -41,19 +42,44 @@ class BrowseFrame(ctk.CTkFrame):
         )
         self.open_folder_btn.grid(row=0, column=1, padx=(8, 0))
 
-        self.file_count_label = ctk.CTkLabel(
-            top_frame, text="", font=ctk.CTkFont(size=12), text_color="gray"
+        # --- File list header ---
+        saved_header_frame = ctk.CTkFrame(self, fg_color=("gray90", "gray20"), corner_radius=6)
+        saved_header_frame.grid(row=1, column=0, sticky="ew", pady=(4, 4), padx=(0, 8))
+        saved_header_frame.grid_columnconfigure(2, weight=1)
+        
+        saved_header = ctk.CTkLabel(
+            saved_header_frame,
+            text="💾 Saved Posts",
+            font=ctk.CTkFont(size=16, weight="bold"),
+            anchor="w",
         )
-        self.file_count_label.grid(row=0, column=2, padx=(12, 0))
+        saved_header.grid(row=0, column=0, sticky="w", padx=(12, 4), pady=8)
+
+        self.file_count_label = ctk.CTkLabel(
+            saved_header_frame,
+            text="(0)",
+            font=ctk.CTkFont(size=16, weight="bold"),
+            text_color="gray",
+            anchor="w"
+        )
+        self.file_count_label.grid(row=0, column=1, sticky="w", padx=(0, 12), pady=8)
+
+        # Filter input
+        self.file_filter_entry = ctk.CTkEntry(
+            saved_header_frame,
+            placeholder_text="🔍 Filter files...",
+            width=150,
+            height=28,
+        )
+        self.file_filter_entry.grid(row=0, column=3, sticky="e", padx=12, pady=8)
+        self.file_filter_entry.bind("<KeyRelease>", self._on_filter_change)
 
         # --- File list (left panel) ---
         self.file_list = ctk.CTkScrollableFrame(
             self,
-            label_text="Saved Posts",
-            label_font=ctk.CTkFont(size=13, weight="bold"),
             width=280,
         )
-        self.file_list.grid(row=1, column=0, sticky="nsew", padx=(0, 8))
+        self.file_list.grid(row=2, column=0, sticky="nsew", padx=(0, 8))
         self.file_list.grid_columnconfigure(0, weight=1)
 
         self.file_buttons: list[ctk.CTkButton] = []
@@ -61,7 +87,7 @@ class BrowseFrame(ctk.CTkFrame):
 
         # --- Preview panel (right panel) ---
         self.preview_frame = ctk.CTkFrame(self)
-        self.preview_frame.grid(row=1, column=1, sticky="nsew")
+        self.preview_frame.grid(row=2, column=1, sticky="nsew")
         self.preview_frame.grid_rowconfigure(1, weight=1)
         self.preview_frame.grid_columnconfigure(0, weight=1)
 
@@ -84,15 +110,14 @@ class BrowseFrame(ctk.CTkFrame):
         # Initial load
         self.after(500, self._refresh_list)
 
-    def _refresh_list(self):
-        """Reload the file list from the output folder."""
-        # Clear existing buttons
-        for btn in self.file_buttons:
-            btn.destroy()
-        self.file_buttons.clear()
+    def refresh_files(self):
+        """Public method to refresh the file list."""
+        self._refresh_list()
 
+    def _refresh_list(self):
+        """Reload the file list from the output folder and update UI."""
         output_folder = get_output_folder(self.config)
-        md_files = []
+        self.all_files = []
 
         if os.path.isdir(output_folder):
             for root, dirs, files in os.walk(output_folder):
@@ -101,36 +126,64 @@ class BrowseFrame(ctk.CTkFrame):
                         full_path = os.path.join(root, f)
                         # Show relative path from output folder
                         rel_path = os.path.relpath(full_path, output_folder)
-                        md_files.append((rel_path, full_path))
+                        self.all_files.append((rel_path, full_path))
+        
+        self._update_list_ui()
 
-        self.file_count_label.configure(text=f"{len(md_files)} files")
+    def _update_list_ui(self):
+        """Update the file list UI based on filter."""
+        # Clear existing buttons
+        for btn in self.file_buttons:
+            btn.destroy()
+        self.file_buttons.clear()
+        
+        # Toggle filter visibility
+        if len(self.all_files) >= 3:
+            self.file_filter_entry.grid()
+        else:
+            self.file_filter_entry.grid_remove()
+        
+        filter_text = self.file_filter_entry.get().lower()
+        visible_files = []
+        
+        for rel_path, full_path in self.all_files:
+            if filter_text and filter_text not in rel_path.lower():
+                continue
+            visible_files.append((rel_path, full_path))
 
-        if not md_files:
+        count_text = f"({len(visible_files)})"
+        if len(visible_files) != len(self.all_files):
+            count_text = f"({len(visible_files)}/{len(self.all_files)})"
+        self.file_count_label.configure(text=count_text)
+
+        if not visible_files:
             placeholder = ctk.CTkLabel(
                 self.file_list,
-                text="No posts saved yet.\nUse the Scrape tab to get started.",
-                font=ctk.CTkFont(size=12),
+                text="No files found." if self.all_files else "No saved posts found.\nScrape some posts first!",
                 text_color="gray",
-                justify="left",
             )
-            placeholder.grid(row=0, column=0, padx=8, pady=16, sticky="w")
+            placeholder.grid(row=0, column=0, pady=20)
+            # Add to list so it gets destroyed on next refresh
             self.file_buttons.append(placeholder)
-            return
+        else:
+            for i, (rel_path, full_path) in enumerate(visible_files):
+                btn = ctk.CTkButton(
+                    self.file_list,
+                    text=rel_path,
+                    font=ctk.CTkFont(size=11),
+                    anchor="w",
+                    height=28,
+                    fg_color="transparent",
+                    text_color=("gray10", "gray90"),
+                    hover_color=("gray80", "gray30"),
+                    command=lambda p=full_path, r=rel_path: self._preview_file(p, r),
+                )
+                btn.grid(row=i, column=0, sticky="ew", padx=2, pady=1)
+                self.file_buttons.append(btn)
 
-        for i, (rel_path, full_path) in enumerate(md_files):
-            btn = ctk.CTkButton(
-                self.file_list,
-                text=rel_path,
-                font=ctk.CTkFont(size=11),
-                anchor="w",
-                height=28,
-                fg_color="transparent",
-                text_color=("gray10", "gray90"),
-                hover_color=("gray80", "gray30"),
-                command=lambda p=full_path, r=rel_path: self._preview_file(p, r),
-            )
-            btn.grid(row=i, column=0, sticky="ew", padx=2, pady=1)
-            self.file_buttons.append(btn)
+    def _on_filter_change(self, event=None):
+        """Handle filter text change."""
+        self._update_list_ui()
 
     def _preview_file(self, filepath: str, display_name: str):
         """Show a markdown file's contents in the preview panel."""
@@ -153,3 +206,7 @@ class BrowseFrame(ctk.CTkFrame):
         output_folder = get_output_folder(self.config)
         if os.path.isdir(output_folder):
             subprocess.Popen(["explorer", output_folder])
+
+    def focus_filter_entry(self):
+        """Set focus to the file filter entry widget."""
+        self.file_filter_entry.focus_set()

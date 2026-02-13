@@ -118,19 +118,24 @@ def get_latest_post_date(person_folder: str) -> Optional[str]:
     return latest_date
 
 
-def save_post(post: Post, output_folder: str, skip_duplicates: bool = True) -> Optional[str]:
+def save_post(post: Post, output_folder: str, skip_duplicates: bool = True, forced_author: str = None) -> Optional[str]:
     """Save a single post as a markdown file.
     
     Args:
         post: Parsed Post object
         output_folder: Root output folder path
         skip_duplicates: If True, skip posts that already exist
+        forced_author: Optional author name to force folder creation
     
     Returns:
         Path to the saved file, or None if skipped.
     """
     # Create person-specific subfolder
-    author_slug = slugify(post.author) if post.author else "unknown-author"
+    if forced_author:
+        author_slug = slugify(forced_author)
+    else:
+        author_slug = slugify(post.author) if post.author else "unknown-author"
+    
     person_folder = os.path.join(output_folder, author_slug)
     os.makedirs(person_folder, exist_ok=True)
 
@@ -157,13 +162,14 @@ def save_post(post: Post, output_folder: str, skip_duplicates: bool = True) -> O
     return filepath
 
 
-def save_posts(posts: list[Post], output_folder: str, on_progress=None) -> list[str]:
+def save_posts(posts: list[Post], output_folder: str, on_progress=None, forced_author: str = None) -> list[str]:
     """Save multiple posts as markdown files.
     
     Args:
         posts: List of parsed Post objects
         output_folder: Root output folder path
         on_progress: Callback (current, total, filepath)
+        forced_author: Optional author name to force folder creation
     
     Returns:
         List of saved file paths.
@@ -172,7 +178,7 @@ def save_posts(posts: list[Post], output_folder: str, on_progress=None) -> list[
     total = len(posts)
 
     for i, post in enumerate(posts):
-        filepath = save_post(post, output_folder)
+        filepath = save_post(post, output_folder, forced_author=forced_author)
         if filepath:
             saved.append(filepath)
         if on_progress:
