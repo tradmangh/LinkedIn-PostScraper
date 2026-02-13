@@ -17,15 +17,16 @@ This script automates the creation of GitHub releases based on `CHANGELOG.md` en
 **Prerequisites:**
 - Python 3.8+
 - `requests` library installed (`pip install requests`)
-- GitHub personal access token with `repo` scope
+- GitHub personal access token with `repo` scope (only required when creating GitHub releases; not needed for tag-only mode with `--skip-releases`)
 
 **Usage:**
 
 ```bash
-# Set your GitHub token
-export GITHUB_TOKEN='your_github_personal_access_token'
+# Tag-only mode (no GitHub releases created, no token required)
+python3 scripts/create_releases.py --skip-releases
 
-# Run the script
+# Full mode: create git tags and GitHub releases (token required)
+export GITHUB_TOKEN='your_github_personal_access_token'
 python3 scripts/create_releases.py
 ```
 
