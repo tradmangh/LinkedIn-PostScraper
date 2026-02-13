@@ -4,13 +4,17 @@ Tests for the create_releases.py script.
 
 import sys
 from pathlib import Path
+import importlib.util
 
-# Add scripts directory to path
-sys.path.insert(0, str(Path(__file__).parent.parent / "scripts"))
-
-from create_releases import parse_changelog
-
-
+# Load the create_releases module directly from its file path without
+# modifying sys.path, to avoid affecting other tests' imports.
+_create_releases_path = Path(__file__).parent.parent / "scripts" / "create_releases.py"
+_create_releases_spec = importlib.util.spec_from_file_location("create_releases", _create_releases_path)
+_create_releases_module = importlib.util.module_from_spec(_create_releases_spec)
+sys.modules.setdefault("create_releases", _create_releases_module)
+assert _create_releases_spec is not None and _create_releases_spec.loader is not None
+_create_releases_spec.loader.exec_module(_create_releases_module)
+parse_changelog = _create_releases_module.parse_changelog
 def test_parse_changelog_with_fixture(tmp_path):
     """Test parsing a CHANGELOG with multiple versions."""
     changelog_content = """# Changelog
