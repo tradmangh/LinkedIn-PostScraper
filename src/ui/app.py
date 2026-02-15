@@ -102,7 +102,7 @@ class App(ctk.CTk):
         self.browse_frame.grid(row=0, column=0, sticky="nsew")
 
         # Save config on close
-        self.protocol("WM_DELETE_CLOSE", self._on_close)
+        self.protocol("WM_DELETE_WINDOW", self._on_close)
 
         # Global bindings
         self.bind_all("<Button-1>", self._on_global_click)
