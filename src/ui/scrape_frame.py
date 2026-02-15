@@ -963,8 +963,7 @@ class ScrapeFrame(ctk.CTkFrame):
                 self._set_status(str(e), "warning")
             except Exception as e:
                 self._set_status(f"Scrape error: {e}", "error")
-                import traceback
-                traceback.print_exc()
+                logger.exception("Scrape error in worker thread")
             finally:
                 self._set_ui_state("idle")
 
