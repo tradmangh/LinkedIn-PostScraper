@@ -577,12 +577,23 @@ class ScrapeFrame(ctk.CTkFrame):
         
         def validate_task():
             # Acquire lock to use scraper
-            # If scraper is busy (e.g. login or scan), we skip or wait?
-            # Better to try acquire with timeout or just wait
+            # If scraper is busy (e.g. login or scan), schedule a retry so the
+            # UI does not remain stuck with validation pending.
             if not self._scraper_lock.acquire(blocking=False):
-                # Scraper busy, ignore validation for now or retry?
-                # Just ignore implies we can't validate yet.
-                self._set_status("Scraper busy, verify URL later.", "warning")
+                def retry():
+                    # Only retry if the URL hasn't changed since this validation
+                    current = self.url_entry.get().strip()
+                    if current != url:
+                        return
+                    self._set_status("Scraper busy, will retry validation shortly...", "warning")
+                    self._perform_delayed_validation(url, is_username_only)
+
+                # Schedule a short delayed retry on the main UI thread
+                try:
+                    self.after(500, retry)
+                except Exception:
+                    # If scheduling fails for any reason, at least leave a warning
+                    self._set_status("Scraper busy, please try validating the URL again.", "warning")
                 return
 
             try:
