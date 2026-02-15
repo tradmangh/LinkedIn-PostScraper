@@ -136,3 +136,6 @@ class TestScraperInitialization:
         assert scraper.DELAY_BETWEEN_SCROLLS == (1.5, 3.0)
         assert scraper.DELAY_BETWEEN_CLICKS == (0.8, 1.5)
         assert scraper.DELAY_AFTER_LOAD == (2.0, 3.5)
+
+# (Removed TestScrapePostsLogic, which only tested a trivial comparison and did not
+# exercise LinkedInScraper.scrape_posts or any scraper logic.)
