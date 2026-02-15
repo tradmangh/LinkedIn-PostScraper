@@ -431,7 +431,6 @@ class LinkedInScraper:
             () => {
                 const posts = document.querySelectorAll('div.feed-shared-update-v2[data-urn*="activity"]');
                 const results = [];
-                console.log('DEBUG: scan_posts found ' + posts.length + ' posts');
                 posts.forEach((post, idx) => {
                     const urn = post.getAttribute('data-urn') || '';
 
