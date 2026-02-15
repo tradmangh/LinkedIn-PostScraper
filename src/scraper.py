@@ -593,8 +593,9 @@ class LinkedInScraper:
             for p in reversed(posts_data)
         ]
 
-        # Limit to max_posts (if needed, but usually we filter by selection)
-        # raw_posts = raw_posts[:max_posts] # We should respect selection in UI, not arbitrary max_posts here
+        # Limit to max_posts if provided; selection-based filtering (if any) happens earlier
+        if max_posts is not None and max_posts > 0:
+            raw_posts = raw_posts[:max_posts]
 
         total = len(raw_posts)
         if on_progress:
