@@ -84,6 +84,7 @@ class ScrapeFrame(ctk.CTkFrame):
         self._validation_after_id = None  # Store after callback ID for cancellation
         self._tooltip = None  # Will be attached to url_entry
         self.selected_indices = set()  # Track selected post indices
+        self.selected_indices = set()  # Track selected post indices
 
         self.grid_rowconfigure(4, weight=1)  # post list gets the space
         self.grid_columnconfigure(0, weight=1)
