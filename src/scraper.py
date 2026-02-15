@@ -211,12 +211,12 @@ class LinkedInScraper:
                     
                     # Verify the URL is valid before returning
                     if len(profile_url) > len("https://www.linkedin.com/in/"):
-                        print(f"[DEBUG] Extracted profile URL: {profile_url}")  # Debug
+                        logger.debug("Extracted profile URL: %s", profile_url)
                         if on_status:
                             on_status(f"✓ Profile URL extracted: {profile_url}")
                         return profile_url
             
-            print(f"[DEBUG] Could not extract valid profile URL from: {stable_url}")  # Debug
+            logger.debug("Could not extract valid profile URL from: %s", stable_url)
             if on_status:
                 on_status("Could not extract a valid profile URL. You can enter it manually.")
             return None
