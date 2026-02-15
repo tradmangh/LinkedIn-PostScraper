@@ -305,7 +305,6 @@ class ScrapeFrame(ctk.CTkFrame):
                  command=self._on_scan,
                  fg_color=["#3B8ED0", "#1F6AA5"],
                  hover_color=["#36719F", "#144870"],
-                 state="normal"
              ))
              self.after(0, lambda: self.scrape_btn.configure(
                  text="⬇ Scrape Selected", 
